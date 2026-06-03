@@ -1,0 +1,77 @@
+{
+  "name": "agentsofmine-collector",
+  "version": "0.1.0",
+  "description": "Capture and sync AI coding agent sessions to AgentsOfMine. Runs as a local background daemon with an MCP server entrypoint.",
+  "license": "MIT",
+  "author": "AgentsOfMine <hello@agentsofmine.io>",
+  "homepage": "https://agentsofmine.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AgentsOfMine/collector.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AgentsOfMine/collector/issues"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "claude",
+    "opencode",
+    "codex",
+    "mcp",
+    "session",
+    "sync"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "aom": "./dist/bin/aom.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "keytar": "^7.9.0",
+    "node-fetch": "^3.3.2",
+    "open": "^10.1.0",
+    "qrcode-terminal": "^0.12.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/keytar": "^4.4.2",
+    "@types/node": "^22.0.0",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^2.1.0"
+  }
+}

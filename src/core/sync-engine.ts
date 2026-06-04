@@ -1,4 +1,4 @@
-import type { CanonicalSession } from "./canonical.js";
+import type { SessionWithMessages } from "./canonical.js";
 import type { Adapter } from "../adapters/adapter.js";
 import type { CursorStore } from "./cursor-store.js";
 import { post } from "./http-client.js";
@@ -24,7 +24,7 @@ export async function runSync(
   _httpClient?: typeof post,
 ): Promise<SyncSummary> {
   const httpPost = _httpClient ?? post;
-  const batchSize = config.batchSize ?? 50;
+  const batchSize = config.batchSize ?? 5;
 
   let synced = 0;
   let failed = 0;
@@ -34,7 +34,7 @@ export async function runSync(
     const cursorValue = cursorStore.get(adapter.name);
     const cursor = { value: cursorValue };
 
-    const batch: CanonicalSession[] = [];
+    const batch: SessionWithMessages[] = [];
     let lastStartedAt: string | null = null;
 
     const flush = async (): Promise<void> => {

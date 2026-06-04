@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { getDeviceToken } from "./keychain/index.js";
 
 export interface Config {
   syncUrl: string;
@@ -16,6 +17,7 @@ const version = "0.1.0";
 
 const CONFIG_DIR = join(homedir(), ".agentsofmine");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
+const DEVICE_ID_FILE = join(CONFIG_DIR, "device-id");
 
 interface PairingConfigFile {
   deviceId?: string;
@@ -35,19 +37,38 @@ function readPairingConfigFile(): PairingConfigFile {
   return {};
 }
 
-export function loadConfig(): Config {
+function readDeviceIdFile(): string | null {
+  try {
+    if (existsSync(DEVICE_ID_FILE)) {
+      const id = readFileSync(DEVICE_ID_FILE, "utf8").trim();
+      return id.length > 0 ? id : null;
+    }
+  } catch {
+  }
+  return null;
+}
+
+export async function loadConfig(): Promise<Config> {
   const fileConfig = readPairingConfigFile();
 
-  // Priority: env var > config file > defaults
   const syncUrl = process.env["AOM_SYNC_URL"] ?? "https://agentsofmine.io/sync";
+
   const deviceId =
     process.env["AOM_DEVICE_ID"] ??
     (typeof fileConfig.deviceId === "string" && fileConfig.deviceId
       ? fileConfig.deviceId
-      : "dev_local");
+      : readDeviceIdFile() ?? "dev_local");
+
+  const tokenFromFile =
+    typeof fileConfig.deviceToken === "string" && fileConfig.deviceToken
+      ? fileConfig.deviceToken
+      : null;
+
   const deviceToken =
     process.env["AOM_DEVICE_TOKEN"] ??
-    (typeof fileConfig.deviceToken === "string" ? fileConfig.deviceToken : "");
+    tokenFromFile ??
+    (await getDeviceToken()) ??
+    "";
 
   return {
     syncUrl,

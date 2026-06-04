@@ -1,4 +1,4 @@
-import type { CanonicalSession } from "../core/canonical.js";
+import type { SessionWithMessages } from "../core/canonical.js";
 
 export interface Cursor {
   value: string | null;
@@ -6,5 +6,5 @@ export interface Cursor {
 
 export interface Adapter {
   readonly name: string;
-  listNewSessions(cursor: Cursor): AsyncIterable<CanonicalSession>;
+  listNewSessions(cursor: Cursor): AsyncIterable<SessionWithMessages>;
 }

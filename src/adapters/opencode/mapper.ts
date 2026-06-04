@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { basename } from "node:path";
 import type { CanonicalSession } from "../../core/canonical.js";
 import type { OpenCodeRow } from "./sqlite-reader.js";
 
@@ -9,6 +10,13 @@ interface PatchFile {
 
 interface Patch {
   files?: PatchFile[];
+  [key: string]: unknown;
+}
+
+interface ModelJson {
+  id?: string;
+  providerID?: string;
+  variant?: string;
   [key: string]: unknown;
 }
 
@@ -30,23 +38,42 @@ function parsePatch(raw: string | null): string[] | null {
   }
 }
 
+function parseModelLine(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const m = JSON.parse(raw) as ModelJson;
+    const parts = [m.id, m.variant].filter(Boolean);
+    return parts.length > 0 ? parts.join(" · ") : raw;
+  } catch {
+    return raw;
+  }
+}
+
 function projectId(path: string): string {
   return createHash("sha256").update(path).digest("hex").slice(0, 16);
 }
 
+function projectName(worktree: string | null, id: string | null): string {
+  if (worktree) return basename(worktree);
+  if (id) return id.slice(0, 12);
+  return "unknown";
+}
+
 export function mapRow(row: OpenCodeRow, projectPath: string): CanonicalSession {
-  const filesChanged = parsePatch(row.patch);
+  const filesChanged = parsePatch(row.summary_diffs);
+  const resolvedProjectPath = row.project_worktree ?? projectPath;
+  const resolvedProjectId = projectId(resolvedProjectPath);
 
   return {
     sessionId: row.id,
     provider: "opencode",
-    projectId: projectId(projectPath),
-    projectPath,
+    projectId: resolvedProjectId,
+    projectPath: resolvedProjectPath,
     agentName: "OpenCode",
     title: row.title ?? null,
-    modelLine: row.model ?? null,
-    startedAt: row.created_at,
-    endedAt: row.updated_at,
+    modelLine: parseModelLine(row.model),
+    startedAt: new Date(row.time_created).toISOString(),
+    endedAt: new Date(row.time_updated).toISOString(),
     messageCount: null,
     fileCount: row.summary_files ?? null,
     linesAdded: row.summary_additions ?? null,

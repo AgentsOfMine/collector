@@ -44,9 +44,11 @@ if (subcommand === "start") {
   // index.js connects to MCP transport and runs forever — no exit here.
 
 } else if (subcommand === "pair") {
-  const reset = args.includes("--reset");
-  const { runPairFlow } = await import("./pairing/pair.js");
-  await runPairFlow(reset);
+  const { runPair } = await import("./cli/pair.js");
+  await runPair({
+    force: args.includes("--force") || args.includes("--reset"),
+    noBrowser: args.includes("--no-browser"),
+  });
 
 } else if (subcommand === "status") {
   const { getStatusPayload } = await import("./mcp-tools/status.js");
@@ -62,7 +64,7 @@ if (subcommand === "start") {
   const { CodexAdapter } = await import("./adapters/codex/index.js");
   const { syncNow } = await import("./mcp-tools/sync-now.js");
 
-  const config = loadConfig();
+  const config = await loadConfig();
   const adapters = [
     new OpenCodeAdapter(config.opencodeDbPath),
     new ClaudeCodeAdapter(config.claudeProjectsGlob),

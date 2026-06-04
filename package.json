@@ -15,11 +15,17 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
     "better-sqlite3": "^12.0.0",
+    "commander": "^15.0.0",
+    "keytar": "^7.9.0",
+    "node-fetch": "^3.3.2",
+    "open": "^11.0.0",
+    "qrcode-terminal": "^0.12.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.14.0",
+    "@types/qrcode-terminal": "^0.12.2",
     "tsx": "^4.15.7",
     "typescript": "^5.5.2",
     "vitest": "^1.6.0"

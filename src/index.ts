@@ -12,7 +12,7 @@ import { CodexAdapter } from "./adapters/codex/index.js";
 import { syncNow } from "./mcp-tools/sync-now.js";
 import { getStatusPayload } from "./mcp-tools/status.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 
 const adapters = [
   new OpenCodeAdapter(config.opencodeDbPath),

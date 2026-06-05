@@ -24,9 +24,6 @@ import { ConfigRepository } from "../infrastructure/config-repository.js";
 import { PairingService } from "../services/pairing-service.js";
 import { isPaired } from "../keychain/index.js";
 
-// ---------------------------------------------------------------------------
-// Public command handler
-// ---------------------------------------------------------------------------
 
 export interface PairOptions {
   /** Skip auto-opening the browser. Defaults to false. */
@@ -105,9 +102,6 @@ export async function runPair(opts: PairOptions = {}): Promise<void> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// UI helpers (presentation layer)
-// ---------------------------------------------------------------------------
 
 function printPairingUI(qrUrl: string, pairingCode: string, expiresInMinutes: number): void {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -125,9 +119,6 @@ function printPairingUI(qrUrl: string, pairingCode: string, expiresInMinutes: nu
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }
 
-// ---------------------------------------------------------------------------
-// Error helpers
-// ---------------------------------------------------------------------------
 
 function handleApiError(err: unknown): never {
   if (err instanceof PairingApiError) {

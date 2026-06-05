@@ -11,11 +11,7 @@
 
 import { platform, hostname } from "node:os";
 import { createRequire } from "node:module";
-import fetch from "node-fetch";
 
-// ---------------------------------------------------------------------------
-// Types mirroring the backend contract (device-pairing.md § 3)
-// ---------------------------------------------------------------------------
 
 export interface PairInitRequest {
   deviceId: string;
@@ -49,9 +45,6 @@ export class PairingApiError extends Error {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Client
-// ---------------------------------------------------------------------------
 
 const DEFAULT_BASE_URL = "https://agentsofmine.io";
 
@@ -109,9 +102,6 @@ export class PairingClient {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function buildUserAgent(): string {
   const pkg = getPackageVersion();

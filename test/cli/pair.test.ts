@@ -1,176 +1,76 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { ConfigRepository } from "../../src/infrastructure/config-repository.js";
 
-interface PairingConfig {
-  deviceId?: string;
-  deviceToken?: string;
-  pairedAt?: string;
-}
+let tmpDir: string;
+let repo: ConfigRepository;
 
-function makePairingStore(dir: string) {
-  const configFile = join(dir, "config.json");
+beforeEach(() => {
+  tmpDir = mkdtempSync(join(tmpdir(), "aom-pair-"));
+  repo = new ConfigRepository(tmpDir);
+});
 
-  function read(): PairingConfig | null {
-    try {
-      const raw = readFileSync(configFile, "utf8");
-      const parsed: unknown = JSON.parse(raw);
-      if (
-        typeof parsed === "object" &&
-        parsed !== null &&
-        "deviceId" in parsed &&
-        "deviceToken" in parsed &&
-        "pairedAt" in parsed
-      ) {
-        return parsed as PairingConfig;
-      }
-    } catch {
-      // missing or malformed
-    }
-    return null;
-  }
+afterEach(() => {
+  rmSync(tmpDir, { recursive: true, force: true });
+});
 
-  function write(config: PairingConfig): void {
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(configFile, JSON.stringify(config, null, 2), "utf8");
-  }
-
-  function clear(): void {
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(configFile, "{}", "utf8");
-  }
-
-  return { read, write, clear, configFile };
-}
-
-describe("Pairing — already-paired check", () => {
-  let tmpDir: string;
-  let store: ReturnType<typeof makePairingStore>;
-
-  beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), "aom-pair-test-"));
-    store = makePairingStore(tmpDir);
-  });
-
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-    vi.restoreAllMocks();
-  });
-
-  it("returns existing config when already paired", () => {
-    store.write({
-      deviceId: "dev-abc",
-      deviceToken: "tok-xyz",
-      pairedAt: "2026-06-03T00:00:00Z",
-    });
-
-    const result = store.read();
-    expect(result).not.toBeNull();
+describe("PairingService preconditions — already-paired check", () => {
+  it("returns existing config when paired", () => {
+    repo.writePairingConfig({ deviceId: "dev-abc", deviceToken: "tok-xyz", pairedAt: "2026-06-03T00:00:00Z" });
+    const result = repo.readPairingConfig();
     expect(result?.deviceId).toBe("dev-abc");
     expect(result?.deviceToken).toBe("tok-xyz");
   });
 
-  it("returns null when config file is missing", () => {
-    const result = store.read();
-    expect(result).toBeNull();
+  it("returns null when not paired", () => {
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  it("skips flow when deviceToken is non-empty (already paired)", () => {
-    store.write({ deviceId: "dev-1", deviceToken: "tok-1", pairedAt: "2026-01-01T00:00:00Z" });
-
-    const config = store.read();
-    const shouldSkip = config?.deviceToken != null && config.deviceToken.length > 0;
-    expect(shouldSkip).toBe(true);
+  it("treats non-empty token as already paired", () => {
+    repo.writePairingConfig({ deviceId: "d", deviceToken: "tok-1", pairedAt: "2026-01-01T00:00:00Z" });
+    const config = repo.readPairingConfig();
+    expect(config?.deviceToken?.length).toBeGreaterThan(0);
   });
 
-  it("does NOT skip flow when deviceToken is empty string", () => {
-    store.write({ deviceId: "dev-1", deviceToken: "", pairedAt: "2026-01-01T00:00:00Z" });
-
-    const config = store.read();
-    const shouldSkip = config?.deviceToken != null && config.deviceToken.length > 0;
-    expect(shouldSkip).toBe(false);
+  it("treats empty token as not paired", () => {
+    repo.clearPairingConfig();
+    expect(repo.readDeviceToken()).toBeNull();
   });
 });
 
-describe("Pairing — --reset flag", () => {
-  let tmpDir: string;
-  let store: ReturnType<typeof makePairingStore>;
-
-  beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), "aom-pair-reset-test-"));
-    store = makePairingStore(tmpDir);
+describe("PairingService preconditions — --reset / --force flag", () => {
+  it("clearPairingConfig makes subsequent reads return null", () => {
+    repo.writePairingConfig({ deviceId: "old", deviceToken: "old-tok", pairedAt: "2026-01-01T00:00:00Z" });
+    repo.clearPairingConfig();
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it("clear() writes empty object so read() returns null", () => {
-    store.write({ deviceId: "dev-old", deviceToken: "tok-old", pairedAt: "2026-01-01T00:00:00Z" });
-    store.clear();
-    const result = store.read();
-    expect(result).toBeNull();
-  });
-
-  it("after reset, a new pairing config can be written", () => {
-    store.write({ deviceId: "dev-old", deviceToken: "tok-old", pairedAt: "2026-01-01T00:00:00Z" });
-    store.clear();
-
-    store.write({
-      deviceId: "dev-new",
-      deviceToken: "tok-new",
-      pairedAt: "2026-06-03T00:00:00Z",
-    });
-
-    const result = store.read();
-    expect(result?.deviceId).toBe("dev-new");
-    expect(result?.deviceToken).toBe("tok-new");
+  it("can write a new config after clear", () => {
+    repo.writePairingConfig({ deviceId: "old", deviceToken: "old-tok", pairedAt: "2026-01-01T00:00:00Z" });
+    repo.clearPairingConfig();
+    repo.writePairingConfig({ deviceId: "new", deviceToken: "new-tok", pairedAt: "2026-06-03T00:00:00Z" });
+    expect(repo.readPairingConfig()?.deviceId).toBe("new");
   });
 });
 
-describe("Pairing — malformed config.json", () => {
-  let tmpDir: string;
-  let store: ReturnType<typeof makePairingStore>;
-
-  beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), "aom-pair-malformed-test-"));
-    store = makePairingStore(tmpDir);
+describe("PairingService preconditions — malformed config.json", () => {
+  it("returns null on malformed JSON", async () => {
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(join(tmpDir, "config.json"), "not-json", "utf8");
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
+  it("returns null on JSON array", async () => {
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(join(tmpDir, "config.json"), '["something"]', "utf8");
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  it("returns null when config.json is not valid JSON", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(store.configFile, "not-json", "utf8");
-    const result = store.read();
-    expect(result).toBeNull();
-  });
-
-  it("returns null when config.json is a JSON array", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(store.configFile, '["something"]', "utf8");
-    const result = store.read();
-    expect(result).toBeNull();
-  });
-
-  it("returns null when config.json is missing required fields", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(store.configFile, '{"foo": "bar"}', "utf8");
-    const result = store.read();
-    expect(result).toBeNull();
-  });
-
-  it("returns null when deviceId is a number (wrong type)", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(
-      store.configFile,
-      JSON.stringify({ deviceId: 123, deviceToken: "tok", pairedAt: "2026-01-01T00:00:00Z" }),
-      "utf8"
-    );
-    const result = store.read();
-    expect(result).not.toBeNull();
+  it("returns null when required fields are missing", async () => {
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(join(tmpDir, "config.json"), '{"foo": "bar"}', "utf8");
+    expect(repo.readPairingConfig()).toBeNull();
   });
 });

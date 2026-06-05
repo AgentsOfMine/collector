@@ -26,9 +26,6 @@ program
   .description(pkg.description)
   .version(pkg.version, "-V, --version");
 
-// ---------------------------------------------------------------------------
-// aom pair
-// ---------------------------------------------------------------------------
 program
   .command("pair")
   .description("Pair this machine with your AgentsOfMine account (one-time setup)")
@@ -43,9 +40,6 @@ program
     });
   });
 
-// ---------------------------------------------------------------------------
-// aom start
-// ---------------------------------------------------------------------------
 program
   .command("start")
   .description("Start the collector daemon (file watchers + MCP server)")
@@ -58,9 +52,6 @@ program
     });
   });
 
-// ---------------------------------------------------------------------------
-// aom status
-// ---------------------------------------------------------------------------
 program
   .command("status")
   .description("Show pairing status and last-synced timestamps")
@@ -68,9 +59,6 @@ program
     await runStatus();
   });
 
-// ---------------------------------------------------------------------------
-// aom unpair
-// ---------------------------------------------------------------------------
 program
   .command("unpair")
   .description("Remove device token and clear local collector state")
@@ -79,7 +67,4 @@ program
     await runUnpair({ yes: opts.yes });
   });
 
-// ---------------------------------------------------------------------------
-// Run
-// ---------------------------------------------------------------------------
 await program.parseAsync(process.argv);

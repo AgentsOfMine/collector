@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { Adapter, Cursor } from "../adapter.js";
-import type { CanonicalSession } from "../../core/canonical.js";
+import type { SessionWithMessages } from "../../core/canonical.js";
 import { readJsonlFrom } from "./jsonl-reader.js";
 import { createAccumulator, processEvent, finalizeSession } from "./mapper.js";
 
@@ -58,7 +58,7 @@ export class ClaudeCodeAdapter implements Adapter {
     void projectsGlob;
   }
 
-  async *listNewSessions(cursor: Cursor): AsyncIterable<CanonicalSession> {
+  async *listNewSessions(cursor: Cursor): AsyncIterable<SessionWithMessages> {
     const offsets = parseCursor(cursor.value);
     const files = findJsonlFiles(this.projectsDir);
 
@@ -79,7 +79,12 @@ export class ClaudeCodeAdapter implements Adapter {
 
       if (acc.messageCount > 0 || acc.linesAdded > 0) {
         offsets[filePath] = lastOffset;
-        yield finalizeSession(acc);
+        const session = finalizeSession(acc);
+        const allMessages = acc.messages;
+        const messages = allMessages.length <= 150
+          ? allMessages
+          : [allMessages[0], ...allMessages.slice(-149)];
+        yield { ...session, messages };
       }
     }
   }

@@ -2,65 +2,21 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { FileCursorStore } from "../../src/core/cursor-store.js";
 
-// We need to test cursor-store with a custom base dir.
-// The module uses a fixed path based on homedir(), so we'll test via a factory approach.
-// Re-implement the logic inline to test the core behavior.
+let tmpDir: string;
+let store: FileCursorStore;
 
-import { writeFileSync, readFileSync, renameSync, mkdirSync } from "node:fs";
+beforeEach(() => {
+  tmpDir = mkdtempSync(join(tmpdir(), "aom-cursor-"));
+  store = new FileCursorStore(tmpDir);
+});
 
-function makeCursorStore(dir: string) {
-  const CURSORS_FILE = join(dir, "cursors.json");
+afterEach(() => {
+  rmSync(tmpDir, { recursive: true, force: true });
+});
 
-  function ensureDir() {
-    mkdirSync(dir, { recursive: true });
-  }
-
-  function load(): Record<string, string> {
-    try {
-      const raw = readFileSync(CURSORS_FILE, "utf8");
-      const parsed: unknown = JSON.parse(raw);
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        return parsed as Record<string, string>;
-      }
-    } catch {
-      // missing or broken
-    }
-    return {};
-  }
-
-  function save(data: Record<string, string>): void {
-    ensureDir();
-    const tmp = CURSORS_FILE + ".tmp";
-    writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
-    renameSync(tmp, CURSORS_FILE);
-  }
-
-  return {
-    get(adapterName: string): string | null {
-      return load()[adapterName] ?? null;
-    },
-    set(adapterName: string, value: string): void {
-      const data = load();
-      data[adapterName] = value;
-      save(data);
-    },
-  };
-}
-
-describe("CursorStore", () => {
-  let tmpDir: string;
-  let store: ReturnType<typeof makeCursorStore>;
-
-  beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), "aom-cursor-test-"));
-    store = makeCursorStore(tmpDir);
-  });
-
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-
+describe("FileCursorStore", () => {
   it("returns null when adapter has no cursor", () => {
     expect(store.get("opencode")).toBeNull();
     expect(store.get("claude-code")).toBeNull();
@@ -75,7 +31,6 @@ describe("CursorStore", () => {
     store.set("opencode", "cursor-a");
     store.set("claude-code", "cursor-b");
     store.set("codex", "cursor-c");
-
     expect(store.get("opencode")).toBe("cursor-a");
     expect(store.get("claude-code")).toBe("cursor-b");
     expect(store.get("codex")).toBe("cursor-c");
@@ -87,19 +42,26 @@ describe("CursorStore", () => {
     expect(store.get("opencode")).toBe("new-value");
   });
 
-  it("atomic write — uses tmp file then rename", () => {
+  it("uses tmp → rename for atomic writes", () => {
     store.set("opencode", "test-value");
-    const tmpFile = join(tmpDir, "cursors.json.tmp");
-    // After write, tmp file should be gone (renamed to cursors.json)
-    expect(existsSync(tmpFile)).toBe(false);
+    expect(existsSync(join(tmpDir, "cursors.json.tmp"))).toBe(false);
     expect(existsSync(join(tmpDir, "cursors.json"))).toBe(true);
   });
 
-  it("handles concurrent writes without corruption", () => {
-    // Simulate rapid sequential writes
+  it("survives rapid sequential writes without corruption", () => {
     for (let i = 0; i < 20; i++) {
       store.set("opencode", `cursor-${i}`);
     }
     expect(store.get("opencode")).toBe("cursor-19");
+  });
+
+  it("flush() is a no-op on a fresh store and does not throw", () => {
+    expect(() => store.flush()).not.toThrow();
+  });
+
+  it("persists across new instances pointing to the same dir", () => {
+    store.set("opencode", "persisted-value");
+    const store2 = new FileCursorStore(tmpDir);
+    expect(store2.get("opencode")).toBe("persisted-value");
   });
 });

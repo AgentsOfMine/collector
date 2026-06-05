@@ -4,9 +4,6 @@
  * Keeps protocol framing separate from handler dispatch logic.
  */
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 export interface JsonRpcRequest {
   jsonrpc: "2.0";
@@ -37,9 +34,6 @@ export const RPC_ERRORS = {
   INTERNAL_ERROR: -32603,
 } as const;
 
-// ---------------------------------------------------------------------------
-// Parsing
-// ---------------------------------------------------------------------------
 
 /**
  * Parse a raw JSON string into a JsonRpcRequest.
@@ -63,9 +57,6 @@ export function parseRequest(line: string): JsonRpcRequest | null {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Writing
-// ---------------------------------------------------------------------------
 
 /** Write a successful JSON-RPC response to stdout. */
 export function writeResponse(id: string | number | null | undefined, result: unknown): void {

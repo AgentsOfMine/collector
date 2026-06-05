@@ -88,6 +88,7 @@ export function queryMessages(db: Database.Database, sessionId: string): Canonic
       messageId,
       sessionId,
       role: msg.role as "user" | "assistant",
+      senderName: msg.role === "user" ? "You" : "OpenCode",
       createdAt: msg.createdAt,
       parts: msg.parts,
     }))

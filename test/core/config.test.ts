@@ -1,152 +1,99 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { ConfigRepository } from "../../src/infrastructure/config-repository.js";
 
-interface PairingConfigFile {
-  deviceId?: unknown;
-  deviceToken?: unknown;
-}
+let tmpDir: string;
+let repo: ConfigRepository;
 
-function loadConfigFromFile(configFile: string): PairingConfigFile {
-  try {
-    const raw = readFileSync(configFile, "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === "object" && parsed !== null) {
-      return parsed as PairingConfigFile;
-    }
-  } catch {
-    // missing or malformed
-  }
-  return {};
-}
+beforeEach(() => {
+  tmpDir = mkdtempSync(join(tmpdir(), "aom-config-"));
+  repo = new ConfigRepository(tmpDir);
+});
 
-function resolveDeviceId(
-  envValue: string | undefined,
-  fileConfig: PairingConfigFile,
-): string {
-  if (envValue !== undefined) return envValue;
-  if (typeof fileConfig.deviceId === "string" && fileConfig.deviceId) {
-    return fileConfig.deviceId;
-  }
-  return "dev_local";
-}
+afterEach(() => {
+  rmSync(tmpDir, { recursive: true, force: true });
+});
 
-function resolveDeviceToken(
-  envValue: string | undefined,
-  fileConfig: PairingConfigFile,
-): string {
-  if (envValue !== undefined) return envValue;
-  if (typeof fileConfig.deviceToken === "string") {
-    return fileConfig.deviceToken;
-  }
-  return "";
-}
-
-describe("loadConfig — priority: env var > config file > defaults", () => {
-  let tmpDir: string;
-  let configFile: string;
-
-  beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), "aom-config-test-"));
-    configFile = join(tmpDir, "config.json");
+describe("ConfigRepository — device ID", () => {
+  it("returns null before any write", () => {
+    expect(repo.readDeviceId()).toBeNull();
   });
 
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
+  it("round-trips a written device ID", () => {
+    repo.writeDeviceId("dev-abc-123");
+    expect(repo.readDeviceId()).toBe("dev-abc-123");
   });
 
-  it("env var AOM_DEVICE_ID takes priority over config file", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(
-      configFile,
-      JSON.stringify({ deviceId: "file-device", deviceToken: "file-token", pairedAt: "2026-01-01" }),
-      "utf8",
-    );
+  it("returns null for an empty string device ID file", () => {
+    writeFileSync(join(tmpDir, "device-id"), "   ", "utf8");
+    expect(repo.readDeviceId()).toBeNull();
+  });
+});
 
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceId("env-device", fc)).toBe("env-device");
+describe("ConfigRepository — pairing config", () => {
+  it("returns null when config.json is missing", () => {
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  it("env var AOM_DEVICE_TOKEN takes priority over config file", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(
-      configFile,
-      JSON.stringify({ deviceId: "file-device", deviceToken: "file-token", pairedAt: "2026-01-01" }),
-      "utf8",
-    );
-
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceToken("env-token", fc)).toBe("env-token");
+  it("round-trips a written pairing config", () => {
+    const config = {
+      deviceId: "dev-1",
+      deviceToken: "tok-xyz",
+      pairedAt: "2026-06-03T00:00:00Z",
+    };
+    repo.writePairingConfig(config);
+    expect(repo.readPairingConfig()).toEqual(config);
   });
 
-  it("config file deviceId used when env var absent", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(
-      configFile,
-      JSON.stringify({ deviceId: "file-device", deviceToken: "file-token", pairedAt: "2026-01-01" }),
-      "utf8",
-    );
-
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceId(undefined, fc)).toBe("file-device");
+  it("returns null when config.json is malformed JSON", () => {
+    writeFileSync(join(tmpDir, "config.json"), "NOT JSON {{", "utf8");
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  it("config file deviceToken used when env var absent", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(
-      configFile,
-      JSON.stringify({ deviceId: "file-device", deviceToken: "file-token", pairedAt: "2026-01-01" }),
-      "utf8",
-    );
-
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceToken(undefined, fc)).toBe("file-token");
+  it("returns null when config.json is missing required fields", () => {
+    writeFileSync(join(tmpDir, "config.json"), JSON.stringify({ foo: "bar" }), "utf8");
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  it("returns default deviceId when config file is missing", () => {
-    // don't write any config file
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceId(undefined, fc)).toBe("dev_local");
+  it("returns null when config.json is a JSON array", () => {
+    writeFileSync(join(tmpDir, "config.json"), '["a"]', "utf8");
+    expect(repo.readPairingConfig()).toBeNull();
+  });
+});
+
+describe("ConfigRepository — readDeviceToken", () => {
+  it("returns null when no config file", () => {
+    expect(repo.readDeviceToken()).toBeNull();
   });
 
-  it("returns empty deviceToken when config file is missing", () => {
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceToken(undefined, fc)).toBe("");
+  it("returns token from config file", () => {
+    repo.writePairingConfig({ deviceId: "d", deviceToken: "tok-123", pairedAt: "2026-01-01T00:00:00Z" });
+    expect(repo.readDeviceToken()).toBe("tok-123");
   });
 
-  it("returns defaults when config file is malformed JSON", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(configFile, "INVALID JSON {{", "utf8");
+  it("returns null when token is empty string", () => {
+    writeFileSync(join(tmpDir, "config.json"), JSON.stringify({ deviceId: "d", deviceToken: "", pairedAt: "now" }), "utf8");
+    expect(repo.readDeviceToken()).toBeNull();
+  });
+});
 
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceId(undefined, fc)).toBe("dev_local");
-    expect(resolveDeviceToken(undefined, fc)).toBe("");
+describe("ConfigRepository — clearPairingConfig", () => {
+  it("makes readPairingConfig return null after clearing", () => {
+    repo.writePairingConfig({ deviceId: "d", deviceToken: "t", pairedAt: "2026-01-01T00:00:00Z" });
+    repo.clearPairingConfig();
+    expect(repo.readPairingConfig()).toBeNull();
   });
 
-  it("falls back to default deviceId when config file has empty string deviceId", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(
-      configFile,
-      JSON.stringify({ deviceId: "", deviceToken: "tok-valid", pairedAt: "2026-01-01" }),
-      "utf8",
-    );
-
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceId(undefined, fc)).toBe("dev_local"); // empty string → default
-    expect(resolveDeviceToken(undefined, fc)).toBe("tok-valid");
+  it("is safe to call when no config file exists", () => {
+    expect(() => repo.clearPairingConfig()).not.toThrow();
   });
 
-  it("env var overrides config file for both fields", () => {
-    mkdirSync(tmpDir, { recursive: true });
-    writeFileSync(
-      configFile,
-      JSON.stringify({ deviceId: "file-device", deviceToken: "file-token", pairedAt: "2026-01-01" }),
-      "utf8",
-    );
-
-    const fc = loadConfigFromFile(configFile);
-    expect(resolveDeviceId("env-device", fc)).toBe("env-device");
-    expect(resolveDeviceToken("env-token", fc)).toBe("env-token");
+  it("allows writing a new config after clear", () => {
+    repo.writePairingConfig({ deviceId: "old", deviceToken: "old-tok", pairedAt: "2026-01-01T00:00:00Z" });
+    repo.clearPairingConfig();
+    repo.writePairingConfig({ deviceId: "new", deviceToken: "new-tok", pairedAt: "2026-06-03T00:00:00Z" });
+    expect(repo.readPairingConfig()?.deviceId).toBe("new");
   });
 });

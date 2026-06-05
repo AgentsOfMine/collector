@@ -54,9 +54,6 @@ export async function startMcpServer(state: DaemonState): Promise<void> {
   // stdio MCP is fire-and-forget from the server side — no explicit listen() needed
 }
 
-// ---------------------------------------------------------------------------
-// Handler dispatch
-// ---------------------------------------------------------------------------
 
 function dispatch(line: string, state: DaemonState): void {
   const req = parseRequest(line);
@@ -89,9 +86,6 @@ function dispatch(line: string, state: DaemonState): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
 
 function handleInitialize(id: string | number | null | undefined): void {
   writeResponse(id, {

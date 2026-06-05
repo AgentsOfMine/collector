@@ -16,9 +16,6 @@ import { PairingClient, PairingApiError } from "../api/pairing-client.js";
 import type { ConfigRepository } from "../infrastructure/config-repository.js";
 import { storeDeviceToken } from "../keychain/index.js";
 
-// ---------------------------------------------------------------------------
-// Public types
-// ---------------------------------------------------------------------------
 
 export interface PairFlowOptions {
   /**
@@ -48,9 +45,6 @@ export type PairFlowResult =
   | { status: "denied" }
   | { status: "expired" };
 
-// ---------------------------------------------------------------------------
-// PairingService
-// ---------------------------------------------------------------------------
 
 export class PairingService {
   constructor(

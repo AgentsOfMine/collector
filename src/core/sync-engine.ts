@@ -21,9 +21,8 @@ export async function runSync(
   adapters: Adapter[],
   config: SyncConfig,
   cursorStore: CursorStore,
-  _httpClient?: typeof post,
+  httpPost: typeof post = post,
 ): Promise<SyncSummary> {
-  const httpPost = _httpClient ?? post;
   const batchSize = config.batchSize ?? 5;
 
   let synced = 0;
@@ -44,7 +43,7 @@ export async function runSync(
           deviceId: config.deviceId,
           collectorVersion: config.collectorVersion,
           sentAt: new Date().toISOString(),
-          sessions: batch,
+          sessions: [...batch],
         };
         const response = await httpPost(config.syncUrl, body, config.deviceToken);
         synced += response.accepted.length;

@@ -71,8 +71,10 @@ export function queryMessages(db: Database.Database, sessionId: string): Canonic
   const byMessage = new Map<string, { role: string; createdAt: string; parts: CanonicalPart[] }>();
   for (const row of rows) {
     if (!byMessage.has(row.message_id)) {
+      const rawRole = row.role ?? "";
+      const role = rawRole === "user" || rawRole === "assistant" ? rawRole : "assistant";
       byMessage.set(row.message_id, {
-        role: row.role ?? "assistant",
+        role,
         createdAt: new Date(row.time_created).toISOString(),
         parts: [],
       });
@@ -81,13 +83,15 @@ export function queryMessages(db: Database.Database, sessionId: string): Canonic
     if (part) byMessage.get(row.message_id)!.parts.push(part);
   }
 
-  return Array.from(byMessage.entries()).map(([messageId, msg]) => ({
-    messageId,
-    sessionId,
-    role: (msg.role === "user" ? "user" : "assistant") as "user" | "assistant",
-    createdAt: msg.createdAt,
-    parts: msg.parts,
-  }));
+  return Array.from(byMessage.entries())
+    .map(([messageId, msg]) => ({
+      messageId,
+      sessionId,
+      role: msg.role as "user" | "assistant",
+      createdAt: msg.createdAt,
+      parts: msg.parts,
+    }))
+    .filter((msg) => msg.parts.length > 0);
 }
 
 function parsePart(raw: string): CanonicalPart | null {

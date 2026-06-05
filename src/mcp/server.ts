@@ -16,6 +16,7 @@
  */
 
 import { DaemonState } from "../daemon/state.js";
+import { parseRequest, writeResponse, writeError, RPC_ERRORS } from "./json-rpc.js";
 
 export interface SessionEventParams {
   sessionId: string;
@@ -46,102 +47,98 @@ export async function startMcpServer(state: DaemonState): Promise<void> {
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      handleJsonRpcLine(trimmed, state);
+      dispatch(trimmed, state);
     }
   });
 
   // stdio MCP is fire-and-forget from the server side — no explicit listen() needed
 }
 
-function handleJsonRpcLine(line: string, state: DaemonState): void {
-  let msg: Record<string, unknown>;
-  try {
-    msg = JSON.parse(line) as Record<string, unknown>;
-  } catch {
-    state.log(`MCP: invalid JSON line: ${line.slice(0, 80)}`);
+// ---------------------------------------------------------------------------
+// Handler dispatch
+// ---------------------------------------------------------------------------
+
+function dispatch(line: string, state: DaemonState): void {
+  const req = parseRequest(line);
+
+  if (!req) {
+    state.log(`MCP: invalid JSON-RPC line: ${line.slice(0, 80)}`);
     return;
   }
 
-  const id = msg["id"];
-  const method = msg["method"] as string | undefined;
+  const { id, method, params } = req;
 
-  if (method === "initialize") {
-    // Respond with server capabilities
-    writeJsonRpc({
-      jsonrpc: "2.0",
-      id,
-      result: {
-        protocolVersion: "2024-11-05",
-        capabilities: { tools: {} },
-        serverInfo: { name: "agentsofmine-collector", version: "0.1.0" },
-      },
-    });
-    return;
-  }
+  switch (method) {
+    case "initialize":
+      handleInitialize(id);
+      return;
 
-  if (method === "tools/list") {
-    writeJsonRpc({
-      jsonrpc: "2.0",
-      id,
-      result: {
-        tools: [
-          {
-            name: "session_event",
-            description:
-              "Push a session event to AgentsOfMine. Called automatically by supported agents.",
-            inputSchema: {
-              type: "object",
-              required: ["sessionId", "agentType", "eventType", "payload"],
-              properties: {
-                sessionId: { type: "string" },
-                agentType: { type: "string" },
-                eventType: { type: "string" },
-                payload: { type: "object" },
-                timestamp: { type: "string", format: "date-time" },
-              },
-            },
-          },
-        ],
-      },
-    });
-    return;
-  }
+    case "tools/list":
+      handleToolsList(id);
+      return;
 
-  if (method === "tools/call") {
-    const params = msg["params"] as Record<string, unknown> | undefined;
-    const toolName = params?.["name"];
-    const args = params?.["arguments"] as SessionEventParams | undefined;
+    case "tools/call":
+      handleToolsCall(id, params as Record<string, unknown> | undefined, state);
+      return;
 
-    if (toolName === "session_event" && args) {
-      state.log(`MCP event: ${args.agentType} / ${args.eventType} / session=${args.sessionId}`);
-      // TODO(phase-1.5): forward to POST /sync via sync-client
-      state.markSynced("mcp");
-
-      writeJsonRpc({
-        jsonrpc: "2.0",
-        id,
-        result: { content: [{ type: "text", text: "ok" }] },
-      });
-    } else {
-      writeJsonRpc({
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32601, message: `Unknown tool: ${String(toolName)}` },
-      });
-    }
-    return;
-  }
-
-  // Silently ack notifications (no id) and ignore unknown methods
-  if (id !== undefined) {
-    writeJsonRpc({
-      jsonrpc: "2.0",
-      id,
-      error: { code: -32601, message: `Method not found: ${String(method)}` },
-    });
+    default:
+      // Silently ack notifications (no id) and return method-not-found for requests
+      if (id !== undefined && id !== null) {
+        writeError(id, RPC_ERRORS.METHOD_NOT_FOUND, `Method not found: ${method}`);
+      }
   }
 }
 
-function writeJsonRpc(msg: Record<string, unknown>): void {
-  process.stdout.write(JSON.stringify(msg) + "\n");
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+function handleInitialize(id: string | number | null | undefined): void {
+  writeResponse(id, {
+    protocolVersion: "2024-11-05",
+    capabilities: { tools: {} },
+    serverInfo: { name: "agentsofmine-collector", version: "0.1.0" },
+  });
+}
+
+function handleToolsList(id: string | number | null | undefined): void {
+  writeResponse(id, {
+    tools: [
+      {
+        name: "session_event",
+        description:
+          "Push a session event to AgentsOfMine. Called automatically by supported agents.",
+        inputSchema: {
+          type: "object",
+          required: ["sessionId", "agentType", "eventType", "payload"],
+          properties: {
+            sessionId: { type: "string" },
+            agentType: { type: "string" },
+            eventType: { type: "string" },
+            payload: { type: "object" },
+            timestamp: { type: "string", format: "date-time" },
+          },
+        },
+      },
+    ],
+  });
+}
+
+function handleToolsCall(
+  id: string | number | null | undefined,
+  params: Record<string, unknown> | undefined,
+  state: DaemonState,
+): void {
+  const toolName = params?.["name"];
+  const args = params?.["arguments"] as SessionEventParams | undefined;
+
+  if (toolName === "session_event" && args) {
+    state.log(`MCP event: ${args.agentType} / ${args.eventType} / session=${args.sessionId}`);
+    // TODO(phase-1.5): forward to POST /sync via sync-client
+    state.markSynced("mcp");
+    writeResponse(id, { content: [{ type: "text", text: "ok" }] });
+    return;
+  }
+
+  writeError(id, RPC_ERRORS.METHOD_NOT_FOUND, `Unknown tool: ${String(toolName)}`);
 }

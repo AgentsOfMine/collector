@@ -9,7 +9,7 @@ function ensureDir(): void {
   mkdirSync(BASE_DIR, { recursive: true });
 }
 
-function load(): Record<string, string> {
+function loadFromDisk(): Record<string, string> {
   try {
     const raw = readFileSync(CURSORS_FILE, "utf8");
     const parsed: unknown = JSON.parse(raw);
@@ -22,23 +22,47 @@ function load(): Record<string, string> {
   return {};
 }
 
-function saveSync(data: Record<string, string>): void {
+function saveToDisk(data: Record<string, string>): void {
   ensureDir();
   const tmp = CURSORS_FILE + ".tmp";
   writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
   renameSync(tmp, CURSORS_FILE);
 }
 
+// ---------------------------------------------------------------------------
+// In-memory cache — populated lazily on first get(), flushed on every set().
+// This avoids N disk reads per sync cycle when multiple adapters call get().
+// ---------------------------------------------------------------------------
+
+let cache: Record<string, string> | null = null;
+
+function getCache(): Record<string, string> {
+  if (cache === null) {
+    cache = loadFromDisk();
+  }
+  return cache;
+}
+
 export const cursorStore = {
   get(adapterName: string): string | null {
-    const data = load();
-    return data[adapterName] ?? null;
+    return getCache()[adapterName] ?? null;
   },
 
   set(adapterName: string, value: string): void {
-    const data = load();
+    const data = getCache();
     data[adapterName] = value;
-    saveSync(data);
+    saveToDisk(data);
+    // cache is already mutated in-place — no need to reset
+  },
+
+  /**
+   * Explicit write-through flush.
+   * Useful if the caller mutates the cache externally or wants to force a disk write.
+   */
+  flush(): void {
+    if (cache !== null) {
+      saveToDisk(cache);
+    }
   },
 };
 

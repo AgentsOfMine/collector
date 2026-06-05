@@ -5,14 +5,15 @@ import type { OpenCodeRow } from "../../../src/adapters/opencode/sqlite-reader.j
 const baseRow: OpenCodeRow = {
   id: "sess-opencode-001",
   project_id: "proj-123",
+  project_worktree: null,
   title: "Refactor auth module",
   model: "claude-3-5-sonnet-20241022",
-  created_at: "2026-06-03T10:00:00Z",
-  updated_at: "2026-06-03T10:45:00Z",
+  time_created: new Date("2026-06-03T10:00:00Z").getTime(),
+  time_updated: new Date("2026-06-03T10:45:00Z").getTime(),
   summary_additions: 120,
   summary_deletions: 30,
   summary_files: 3,
-  patch: JSON.stringify({
+  summary_diffs: JSON.stringify({
     files: [
       { path: "src/auth.ts" },
       { path: "src/middleware.ts" },
@@ -29,8 +30,8 @@ describe("OpenCode mapper", () => {
     expect(session.agentName).toBe("OpenCode");
     expect(session.title).toBe("Refactor auth module");
     expect(session.modelLine).toBe("claude-3-5-sonnet-20241022");
-    expect(session.startedAt).toBe("2026-06-03T10:00:00Z");
-    expect(session.endedAt).toBe("2026-06-03T10:45:00Z");
+    expect(session.startedAt).toBe("2026-06-03T10:00:00.000Z");
+    expect(session.endedAt).toBe("2026-06-03T10:45:00.000Z");
     expect(session.linesAdded).toBe(120);
     expect(session.linesRemoved).toBe(30);
     expect(session.fileCount).toBe(3);
@@ -43,22 +44,22 @@ describe("OpenCode mapper", () => {
   });
 
   it("sets filesChanged to null when patch is null", () => {
-    const session = mapRow({ ...baseRow, patch: null }, "/home/user/project");
+    const session = mapRow({ ...baseRow, summary_diffs: null }, "/home/user/project");
     expect(session.filesChanged).toBeNull();
   });
 
   it("sets filesChanged to null when patch is empty string", () => {
-    const session = mapRow({ ...baseRow, patch: "" }, "/home/user/project");
+    const session = mapRow({ ...baseRow, summary_diffs: "" }, "/home/user/project");
     expect(session.filesChanged).toBeNull();
   });
 
   it("handles invalid patch JSON gracefully", () => {
-    const session = mapRow({ ...baseRow, patch: "not-json{{{" }, "/home/user/project");
+    const session = mapRow({ ...baseRow, summary_diffs: "not-json{{{" }, "/home/user/project");
     expect(session.filesChanged).toBeNull();
   });
 
   it("handles patch with no files array", () => {
-    const session = mapRow({ ...baseRow, patch: JSON.stringify({ other: "data" }) }, "/home/user/project");
+    const session = mapRow({ ...baseRow, summary_diffs: JSON.stringify({ other: "data" }) }, "/home/user/project");
     expect(session.filesChanged).toBeNull();
   });
 

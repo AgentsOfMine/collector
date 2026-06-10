@@ -1,5 +1,5 @@
 {
-  "name": "@agentsofmine/collector",
+  "name": "agentsofmine-collector",
   "version": "0.1.0",
   "description": "Local MCP server that reads AI coding agent sessions and syncs to AgentsOfMine backend",
   "type": "module",
@@ -7,10 +7,17 @@
   "bin": {
     "aom": "./dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "prepare": "tsc"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",

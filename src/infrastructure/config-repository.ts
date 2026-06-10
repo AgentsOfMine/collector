@@ -14,6 +14,7 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
@@ -85,7 +86,7 @@ export class ConfigRepository {
   writePairingConfig(config: PairingConfig): void {
     mkdirSync(this.configDir, { recursive: true });
     const tmp = this.configFile + ".tmp";
-    writeFileSync(tmp, JSON.stringify(config, null, 2), "utf8");
+    writeFileSync(tmp, JSON.stringify(config, null, 2), { encoding: "utf8", mode: 0o600 });
     renameSync(tmp, this.configFile);
   }
 
@@ -95,6 +96,20 @@ export class ConfigRepository {
       writeFileSync(this.configFile, "{}", "utf8");
     } catch {
       // ignore — file already gone or unwritable
+    }
+  }
+
+  /**
+   * Delete config.json + device-id from disk (idempotent).
+   * Does NOT touch the OS keychain — the caller owns the device token.
+   */
+  clearLocalState(): void {
+    for (const file of [this.configFile, this.deviceIdFile]) {
+      try {
+        if (existsSync(file)) rmSync(file);
+      } catch {
+        // ignore — already gone or unwritable
+      }
     }
   }
 

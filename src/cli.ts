@@ -23,6 +23,7 @@ Usage:
   aom version          Print version and exit
   aom start            Start the MCP server
   aom pair [--reset]   Run the device pairing flow
+  aom unpair [-y]      Remove the device token and clear local state
   aom status           Print last sync status as JSON
   aom sync             Trigger one sync cycle and print result JSON
 `.trim());
@@ -49,6 +50,11 @@ if (subcommand === "start") {
     force: args.includes("--force") || args.includes("--reset"),
     noBrowser: args.includes("--no-browser"),
   });
+
+} else if (subcommand === "unpair") {
+  const { runUnpair } = await import("./cli/unpair.js");
+  await runUnpair({ yes: args.includes("-y") || args.includes("--yes") });
+  process.exit(0);
 
 } else if (subcommand === "status") {
   const { getStatusPayload } = await import("./mcp-tools/status.js");

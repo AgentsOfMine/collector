@@ -12,13 +12,7 @@
  */
 
 import { deleteDeviceToken, isPaired } from "../keychain/index.js";
-import { existsSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
-const STATE_DIR = join(homedir(), ".agentsofmine");
-const DEVICE_ID_FILE = join(STATE_DIR, "device-id");
-const LAST_SYNC_FILE = join(STATE_DIR, "last-sync.json");
+import { ConfigRepository } from "../infrastructure/config-repository.js";
 
 export interface UnpairOptions {
   /** Skip confirmation prompt. */
@@ -46,9 +40,7 @@ export async function runUnpair(opts: UnpairOptions = {}): Promise<void> {
     console.log("✓ Device token removed from keychain.");
   }
 
-  // Clear local state files
-  if (existsSync(LAST_SYNC_FILE)) rmSync(LAST_SYNC_FILE);
-  if (existsSync(DEVICE_ID_FILE)) rmSync(DEVICE_ID_FILE);
+  new ConfigRepository().clearLocalState();
 
   console.log("✓ Local collector state cleared.");
   console.log();

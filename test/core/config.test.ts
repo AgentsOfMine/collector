@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ConfigRepository } from "../../src/infrastructure/config-repository.js";
@@ -77,6 +77,15 @@ describe("ConfigRepository — readDeviceToken", () => {
     writeFileSync(join(tmpDir, "config.json"), JSON.stringify({ deviceId: "d", deviceToken: "", pairedAt: "now" }), "utf8");
     expect(repo.readDeviceToken()).toBeNull();
   });
+
+  it.skipIf(process.platform === "win32")(
+    "writes config.json with owner-only permissions (0600)",
+    () => {
+      repo.writePairingConfig({ deviceId: "d", deviceToken: "secret-tok", pairedAt: "2026-01-01T00:00:00Z" });
+      const mode = statSync(join(tmpDir, "config.json")).mode & 0o777;
+      expect(mode).toBe(0o600);
+    },
+  );
 });
 
 describe("ConfigRepository — clearPairingConfig", () => {

@@ -1,10 +1,32 @@
 import { z } from "zod";
 
+export const ProjectIdentitySchema = z.object({
+  kind: z.enum(["git", "path-legacy"]),
+  canonical: z.string(),
+  displayName: z.string(),
+  git: z
+    .object({
+      root: z.string(),
+      remoteName: z.string(),
+      remoteUrl: z.string(),
+      branch: z.string().nullable(),
+      headCommit: z.string().nullable(),
+    })
+    .optional(),
+  local: z.object({
+    path: z.string(),
+    basename: z.string(),
+  }),
+});
+
+export type ProjectIdentity = z.infer<typeof ProjectIdentitySchema>;
+
 export const CanonicalSessionSchema = z.object({
   sessionId: z.string(),
   provider: z.enum(["claude-code", "opencode", "codex"]),
   projectId: z.string(),
   projectPath: z.string(),
+  projectIdentity: ProjectIdentitySchema.optional(),
   agentName: z.string(),
   title: z.string().nullable(),
   modelLine: z.string().nullable(),

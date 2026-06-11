@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateSession, CanonicalSessionSchema } from "../../src/core/canonical.js";
+import { validateSession } from "../../src/core/canonical.js";
 
 const baseSession = {
   sessionId: "sess-001",
@@ -75,5 +75,46 @@ describe("validateSession", () => {
   it("extensions can hold arbitrary keys", () => {
     const result = validateSession({ ...baseSession, extensions: { foo: "bar", num: 42 } });
     expect(result.extensions["foo"]).toBe("bar");
+  });
+
+  it("accepts a session without projectIdentity (back-compat)", () => {
+    const result = validateSession(baseSession);
+    expect(result.projectIdentity).toBeUndefined();
+  });
+
+  it("accepts and round-trips a session with a valid git projectIdentity", () => {
+    const projectIdentity = {
+      kind: "git" as const,
+      canonical: "git:github.com/Kifah/agentsofmine",
+      displayName: "agentsofmine",
+      git: {
+        root: "/home/user/project",
+        remoteName: "origin",
+        remoteUrl: "git@github.com:Kifah/agentsofmine.git",
+        branch: "main",
+        headCommit: "deadbeef",
+      },
+      local: {
+        path: "/home/user/project",
+        basename: "project",
+      },
+    };
+
+    const result = validateSession({ ...baseSession, projectIdentity });
+    expect(result.projectIdentity).toEqual(projectIdentity);
+  });
+
+  it("accepts a path-legacy projectIdentity with null git fields and no git object", () => {
+    const result = validateSession({
+      ...baseSession,
+      projectIdentity: {
+        kind: "path-legacy",
+        canonical: "path:abc123def456abcd",
+        displayName: "project",
+        local: { path: "/home/user/project", basename: "project" },
+      },
+    });
+    expect(result.projectIdentity?.kind).toBe("path-legacy");
+    expect(result.projectIdentity?.git).toBeUndefined();
   });
 });

@@ -49,7 +49,7 @@ export async function post(
       if (RETRYABLE_STATUS.includes(response.status)) {
         lastError = new HttpError(response.status, `HTTP ${response.status}: ${response.statusText}`);
         if (attempt < RETRY_DELAYS_MS.length) {
-          await delay(RETRY_DELAYS_MS[attempt]!);
+          await delay(RETRY_DELAYS_MS[attempt] ?? 0);
           continue;
         }
         throw lastError;
@@ -66,7 +66,7 @@ export async function post(
         lastError = err instanceof Error ? err : new Error(String(err));
       }
       if (attempt < RETRY_DELAYS_MS.length) {
-        await delay(RETRY_DELAYS_MS[attempt]!);
+        await delay(RETRY_DELAYS_MS[attempt] ?? 0);
       }
     }
   }

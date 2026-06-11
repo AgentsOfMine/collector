@@ -17,6 +17,9 @@
     "build": "tsc",
     "test": "vitest run",
     "dev": "tsx src/index.ts",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run build && npm run lint && npm test",
     "prepare": "tsc"
   },
   "dependencies": {
@@ -29,9 +32,13 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.14.0",
     "@types/qrcode-terminal": "^0.12.2",
+    "@typescript-eslint/eslint-plugin": "^8.61.0",
+    "@typescript-eslint/parser": "^8.61.0",
+    "eslint": "^9.39.4",
     "tsx": "^4.15.7",
     "typescript": "^5.5.2",
     "vitest": "^1.6.0"

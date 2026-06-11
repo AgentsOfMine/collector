@@ -83,7 +83,7 @@ export class PairingService {
 
     // Step 2 — Poll until resolved
     let tick = 0;
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
       await sleep(pollIntervalMs);
       opts.onPollTick?.(tick++);

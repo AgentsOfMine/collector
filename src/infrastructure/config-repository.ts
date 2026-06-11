@@ -118,7 +118,7 @@ export class ConfigRepository {
       const content = readFileSync(this.configFile, "utf8");
       const parsed: unknown = JSON.parse(content);
       if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        return parsed as RawConfigFile;
+        return parsed;
       }
     } catch {
       // missing or malformed — return empty

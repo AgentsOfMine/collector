@@ -34,7 +34,7 @@ export async function runSync(
     const cursor = { value: cursorValue };
 
     const batch: SessionWithMessages[] = [];
-    let lastStartedAt: string | null = null;
+    let pendingCursor: string | null = null;
 
     const flush = async (): Promise<void> => {
       if (batch.length === 0) return;
@@ -51,8 +51,8 @@ export async function runSync(
         for (const r of response.rejected) {
           errors.push(`${adapter.name}/${r.sessionId}: ${r.reason}`);
         }
-        if (lastStartedAt !== null) {
-          cursorStore.set(adapter.name, lastStartedAt);
+        if (pendingCursor !== null) {
+          cursorStore.set(adapter.name, pendingCursor);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -63,9 +63,9 @@ export async function runSync(
     };
 
     try {
-      for await (const session of adapter.listNewSessions(cursor)) {
+      for await (const { session, cursor: itemCursor } of adapter.listNewSessions(cursor)) {
         batch.push(session);
-        lastStartedAt = session.startedAt;
+        pendingCursor = itemCursor;
 
         if (batch.length >= batchSize) {
           await flush();

@@ -44,9 +44,9 @@ export function querySessions(db: Database.Database, cursor: string | null): Ope
       s.summary_diffs
     FROM session s
     LEFT JOIN project p ON p.id = s.project_id
-    WHERE s.time_updated > ?
+    WHERE s.time_created > ?
       AND s.parent_id IS NULL
-    ORDER BY s.time_updated ASC
+    ORDER BY s.time_created ASC
     LIMIT 200
   `);
   return stmt.all(sinceMs);

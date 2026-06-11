@@ -1,14 +1,9 @@
-import { createHash } from "node:crypto";
-import type { Adapter, Cursor } from "../adapter.js";
-import type { SessionWithMessages } from "../../core/canonical.js";
+import type { Adapter, Cursor, SyncItem } from "../adapter.js";
+import { projectFields } from "../../core/project-identity.js";
 import { readCodexSessions } from "./log-reader.js";
 import { extractFiles } from "./shell-parser.js";
 import { join } from "node:path";
 import { homedir } from "node:os";
-
-function projectId(path: string): string {
-  return createHash("sha256").update(path).digest("hex").slice(0, 16);
-}
 
 export class CodexAdapter implements Adapter {
   readonly name = "codex";
@@ -17,9 +12,11 @@ export class CodexAdapter implements Adapter {
     private readonly sessionsDir: string = join(homedir(), ".codex", "sessions"),
   ) {}
 
-  async *listNewSessions(cursor: Cursor): AsyncIterable<SessionWithMessages> {
+  async *listNewSessions(cursor: Cursor): AsyncIterable<SyncItem> {
     const since = cursor.value;
-    const sessions = readCodexSessions(this.sessionsDir);
+    const sessions = readCodexSessions(this.sessionsDir).sort((a, b) =>
+      a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : 0,
+    );
 
     for (const s of sessions) {
       if (since !== null && s.startedAt <= since) continue;
@@ -27,25 +24,26 @@ export class CodexAdapter implements Adapter {
       const { paths } = extractFiles(s.commands);
       const filesChanged = paths.length > 0 ? paths : null;
 
-      yield {
+      const session = {
         sessionId: s.sessionId,
-        provider: "codex",
-        projectId: projectId(s.projectPath),
-        projectPath: s.projectPath,
+        provider: "codex" as const,
+        ...projectFields(s.projectPath),
         agentName: "Codex",
-        title: null,
+        title: s.title,
         modelLine: null,
         startedAt: s.startedAt,
         endedAt: s.endedAt,
-        messageCount: null,
+        messageCount: s.messageCount > 0 ? s.messageCount : null,
         fileCount: filesChanged ? filesChanged.length : null,
         linesAdded: null,
         linesRemoved: null,
         filesChanged,
         filesChangedApproximate: true,
         extensions: {},
-        messages: [],
+        messages: s.messages,
       };
+
+      yield { session, cursor: s.startedAt };
     }
   }
 }

@@ -5,6 +5,7 @@
  * Commands:
  *   aom pair      — one-time device pairing (prints QR, polls, stores token)
  *   aom start     — start the collector daemon (watchers + MCP server)
+ *   aom sync      — sync new sessions to the cloud now (one-shot)
  *   aom status    — show sync state and pairing status
  *   aom unpair    — remove device token and clear local state
  */
@@ -13,6 +14,7 @@ import { Command } from "commander";
 import { createRequire } from "node:module";
 import { runPair } from "../cli/pair.js";
 import { runStart } from "../cli/start.js";
+import { runSyncCommand } from "../cli/sync.js";
 import { runStatus } from "../cli/status.js";
 import { runUnpair } from "../cli/unpair.js";
 
@@ -50,6 +52,14 @@ program
       verbose: opts.verbose,
       ...(opts.mcpPort !== undefined ? { mcpPort: opts.mcpPort } : {}),
     });
+  });
+
+program
+  .command("sync")
+  .description("Sync new sessions to the cloud now (one-shot)")
+  .option("-v, --verbose", "Print per-error detail")
+  .action(async (opts: { verbose: boolean }) => {
+    await runSyncCommand({ verbose: opts.verbose });
   });
 
 program

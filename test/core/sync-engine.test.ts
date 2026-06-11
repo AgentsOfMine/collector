@@ -39,7 +39,7 @@ function makeAdapter(name: string, sessions: SessionWithMessages[]): Adapter {
   return {
     name,
     async *listNewSessions(_cursor: Cursor) {
-      for (const s of sessions) yield s;
+      for (const s of sessions) yield { session: s, cursor: s.startedAt };
     },
   };
 }

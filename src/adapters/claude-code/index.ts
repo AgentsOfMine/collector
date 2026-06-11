@@ -1,10 +1,10 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import type { Adapter, Cursor } from "../adapter.js";
-import type { SessionWithMessages } from "../../core/canonical.js";
+import type { Adapter, Cursor, SyncItem } from "../adapter.js";
 import { readJsonlFrom } from "./jsonl-reader.js";
 import { createAccumulator, processEvent, finalizeSession } from "./mapper.js";
+import { truncateMessages } from "../../core/message-truncation.js";
 
 interface ClaudeCodeCursor {
   [filePath: string]: number;
@@ -41,6 +41,7 @@ function findJsonlFiles(projectsDir: string): string[] {
         }
       }
     } catch {
+      // Unreadable directory (permissions, race) — skip; best-effort discovery.
     }
   }
   return files;
@@ -58,7 +59,7 @@ export class ClaudeCodeAdapter implements Adapter {
     void projectsGlob;
   }
 
-  async *listNewSessions(cursor: Cursor): AsyncIterable<SessionWithMessages> {
+  async *listNewSessions(cursor: Cursor): AsyncIterable<SyncItem> {
     const offsets = parseCursor(cursor.value);
     const files = findJsonlFiles(this.projectsDir);
 
@@ -80,11 +81,8 @@ export class ClaudeCodeAdapter implements Adapter {
       if (acc.messageCount > 0 || acc.linesAdded > 0) {
         offsets[filePath] = lastOffset;
         const session = finalizeSession(acc);
-        const allMessages = acc.messages;
-        const messages = allMessages.length <= 150
-          ? allMessages
-          : [allMessages[0], ...allMessages.slice(-149)];
-        yield { ...session, messages };
+        const messages = truncateMessages(acc.messages);
+        yield { session: { ...session, messages }, cursor: JSON.stringify(offsets) };
       }
     }
   }

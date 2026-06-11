@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
 import { basename, dirname } from "node:path";
 import type { CanonicalSession, CanonicalMessage, CanonicalPart } from "../../core/canonical.js";
+import { projectFields } from "../../core/project-identity.js";
 
 interface ContentBlockText {
   type: "text";
@@ -56,10 +56,6 @@ interface JsonlEvent {
   uuid?: string;
   timestamp?: string;
   message?: MessagePayload;
-}
-
-function projectId(path: string): string {
-  return createHash("sha256").update(path).digest("hex").slice(0, 16);
 }
 
 function extractText(content: string | ContentBlock[] | undefined): string | null {
@@ -216,7 +212,7 @@ export function processEvent(acc: SessionAccumulator, raw: unknown): void {
     typeof rawContent === "string"
       ? [{ type: "text", text: rawContent }]
       : Array.isArray(rawContent)
-        ? (rawContent as ContentBlock[])
+        ? (rawContent)
         : [];
 
   for (const block of blocks) {
@@ -288,8 +284,7 @@ export function finalizeSession(acc: SessionAccumulator): CanonicalSession {
   return {
     sessionId: acc.sessionId,
     provider: "claude-code",
-    projectId: projectId(acc.projectPath),
-    projectPath: acc.projectPath,
+    ...projectFields(acc.projectPath),
     agentName: "Claude Code",
     title: acc.title,
     modelLine: acc.modelLine,

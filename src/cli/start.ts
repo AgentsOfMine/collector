@@ -2,16 +2,24 @@
  * `aom start` — start the collector daemon.
  *
  * Starts:
- *  1. File watchers for each supported agent (opencode, claude-code, codex).
- *  2. The MCP server (stdio transport) so agents can push events directly.
+ *  1. A shared SyncRunner (debounced, single-flight) that uploads new sessions.
+ *  2. File watchers for each supported agent (OpenCode DB, Claude Code and
+ *     Codex session directories). Each watcher triggers the SyncRunner.
+ *  3. The MCP server (stdio transport) so agents can push events directly;
+ *     those pushes also trigger the SyncRunner.
  *
- * Exits with a clear message if the machine is not yet paired.
+ * An initial sync runs at startup so a freshly started daemon catches up on
+ * anything written while it was down. Exits with a clear message if the
+ * machine is not yet paired.
  */
 
 import { isPaired, getDeviceToken } from "../keychain/index.js";
+import { loadConfig } from "../config.js";
 import { startMcpServer } from "../mcp/server.js";
 import { OpenCodeWatcher } from "../watchers/opencode.js";
+import { DirectoryWatcher } from "../watchers/directory-watcher.js";
 import { DaemonState } from "../daemon/state.js";
+import { SyncRunner } from "../daemon/sync-runner.js";
 
 export interface StartOptions {
   /** Override MCP server port (default: stdio). */
@@ -20,8 +28,13 @@ export interface StartOptions {
   verbose?: boolean;
 }
 
+interface Watcher {
+  readonly name: string;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
+
 export async function runStart(opts: StartOptions = {}): Promise<void> {
-  // Guard: must be paired
   if (!(await isPaired())) {
     console.error("✗ This machine is not paired yet.");
     console.error("  Run \x1b[36maom pair\x1b[0m first.");
@@ -34,30 +47,54 @@ export async function runStart(opts: StartOptions = {}): Promise<void> {
     process.exit(1);
   }
 
+  const config = await loadConfig();
   const state = new DaemonState({ deviceToken, verbose: opts.verbose ?? false });
+
+  const syncRunner = new SyncRunner({
+    log: (msg) => state.log(msg),
+    onSynced: (summary) => {
+      if (summary.synced > 0 || summary.failed > 0) {
+        state.markSynced("daemon");
+      }
+    },
+  });
+  state.syncRunner = syncRunner;
 
   console.log("agentsofmine-collector starting…\n");
 
-  // Start file watchers
-  const watchers = [new OpenCodeWatcher(state)];
+  const codexDir = config.codexSessionsDir;
+  const claudeProjectsDir = config.claudeProjectsGlob
+    .replace(/[/\\]\*[/\\]\*\.jsonl$/, "")
+    .replace(/[/\\]\*\.jsonl$/, "");
+
+  const watchers: Watcher[] = [
+    new OpenCodeWatcher(state, syncRunner, config.opencodeDbPath),
+    new DirectoryWatcher("claude-code", claudeProjectsDir, state, syncRunner, (f) =>
+      f.endsWith(".jsonl"),
+    ),
+    new DirectoryWatcher("codex", codexDir, state, syncRunner),
+  ];
+
   for (const w of watchers) {
     await w.start();
     console.log(`  ✓ ${w.name} watcher active`);
   }
 
-  // Start MCP server (stdio — agents attach via their MCP config)
   await startMcpServer(state);
   console.log("  ✓ MCP server listening (stdio)");
 
-  console.log("\nCollector is running. Press Ctrl+C to stop.\n");
+  console.log("\nRunning initial sync…");
+  await syncRunner.runNow();
 
-  // Keep alive until signal
-  setupSignalHandlers(watchers);
+  console.log("\nCollector is running. Watching for changes. Press Ctrl+C to stop.\n");
+
+  setupSignalHandlers(watchers, syncRunner);
 }
 
-function setupSignalHandlers(watchers: Array<{ stop: () => Promise<void> }>): void {
+function setupSignalHandlers(watchers: Watcher[], syncRunner: SyncRunner): void {
   const shutdown = async () => {
     console.log("\nShutting down…");
+    syncRunner.stop();
     for (const w of watchers) {
       await w.stop();
     }

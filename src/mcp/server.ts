@@ -20,8 +20,8 @@ import { parseRequest, writeResponse, writeError, RPC_ERRORS } from "./json-rpc.
 
 export interface SessionEventParams {
   sessionId: string;
-  agentType: "opencode" | "claude-code" | "codex" | string;
-  eventType: "session_start" | "session_end" | "message" | "tool_call" | string;
+  agentType: "opencode" | "claude-code" | "codex" | (string & {});
+  eventType: "session_start" | "session_end" | "message" | "tool_call" | (string & {});
   payload: Record<string, unknown>;
   timestamp?: string;
 }
@@ -128,8 +128,11 @@ function handleToolsCall(
 
   if (toolName === "session_event" && args) {
     state.log(`MCP event: ${args.agentType} / ${args.eventType} / session=${args.sessionId}`);
-    // TODO(phase-1.5): forward to POST /sync via sync-client
-    state.markSynced("mcp");
+    if (state.syncRunner) {
+      state.syncRunner.trigger(`mcp session_event: ${args.agentType}/${args.eventType}`);
+    } else {
+      state.markSynced("mcp");
+    }
     writeResponse(id, { content: [{ type: "text", text: "ok" }] });
     return;
   }

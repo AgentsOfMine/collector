@@ -52,7 +52,7 @@ export function parseRequest(line: string): JsonRpcRequest | null {
   return {
     jsonrpc: "2.0",
     id: msg["id"] as string | number | null | undefined,
-    method: msg["method"] as string,
+    method: msg["method"],
     params: msg["params"],
   };
 }

@@ -57,9 +57,8 @@ if (subcommand === "start") {
   process.exit(0);
 
 } else if (subcommand === "status") {
-  const { getStatusPayload } = await import("./mcp-tools/status.js");
-  const payload = getStatusPayload();
-  console.log(JSON.stringify(payload, null, 2));
+  const { runStatus } = await import("./cli/status.js");
+  await runStatus();
   process.exit(0);
 
 } else if (subcommand === "sync") {

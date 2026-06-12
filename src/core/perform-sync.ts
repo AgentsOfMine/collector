@@ -16,6 +16,7 @@ import { CodexAdapter } from "../adapters/codex/index.js";
 import { PiAdapter } from "../adapters/pi/index.js";
 import type { Adapter } from "../adapters/adapter.js";
 import { setLastSyncResult } from "../mcp-tools/status.js";
+import { recordLastSync } from "./last-sync-store.js";
 
 export class NotPairedError extends Error {
   constructor() {
@@ -59,6 +60,7 @@ export async function performSync(): Promise<SyncSummary> {
   const summary = await runSync(adapters, syncConfig, cursorStore);
   cursorStore.flush();
   setLastSyncResult(summary);
+  recordLastSync("sync");
 
   return summary;
 }

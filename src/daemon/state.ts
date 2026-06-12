@@ -6,13 +6,13 @@
  * real syncs on session_event pushes.
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { SyncRunner } from "./sync-runner.js";
+import { recordLastSync } from "../core/last-sync-store.js";
 
 const STATE_DIR = join(homedir(), ".agentsofmine");
-const LAST_SYNC_FILE = join(STATE_DIR, "last-sync.json");
 
 export interface DaemonStateOptions {
   deviceToken: string;
@@ -24,7 +24,6 @@ export class DaemonState {
   readonly verbose: boolean;
   /** Set by `aom start` once the SyncRunner is constructed. */
   syncRunner: SyncRunner | null = null;
-  private readonly lastSync: Record<string, string> = {};
 
   constructor(opts: DaemonStateOptions) {
     this.deviceToken = opts.deviceToken;
@@ -33,8 +32,7 @@ export class DaemonState {
   }
 
   markSynced(watcher: string): void {
-    this.lastSync[watcher] = new Date().toISOString();
-    writeFileSync(LAST_SYNC_FILE, JSON.stringify(this.lastSync, null, 2), "utf8");
+    recordLastSync(watcher);
   }
 
   log(msg: string): void {

@@ -31,7 +31,13 @@ Works with any editor or terminal — Claude Code CLI, OpenCode CLI, Cursor, Zed
 
 ## Install
 
-Install globally to get the `aom` command on your `PATH`:
+> **Testing status:** Extensive smoke testing has been performed on **macOS
+> only**. Linux is supported by design (it shares macOS's Unix paths and POSIX
+> semantics, and the Node ≥ 20 requirement covers recursive file watching), but
+> has not yet been exercised end-to-end. Linux reports — successes or
+> bugs — are welcome via [issues](https://github.com/AgentsOfMine/collector/issues).
+
+The fastest path on every platform is a global npm install:
 
 ```bash
 npm install -g agentsofmine-collector
@@ -48,6 +54,78 @@ Or run it once without installing:
 ```bash
 npx agentsofmine-collector pair
 ```
+
+### macOS
+
+1. **Node.js ≥ 20.** Install via [Homebrew](https://brew.sh) or
+   [nodejs.org](https://nodejs.org):
+
+   ```bash
+   brew install node          # or: brew install node@20
+   node --version             # must be v20.x or newer
+   ```
+
+2. **Keychain — no setup required.** macOS Keychain is built in; the device
+   token is stored there automatically after pairing.
+
+3. **Install and pair:**
+
+   ```bash
+   npm install -g agentsofmine-collector
+   aom pair
+   aom start
+   ```
+
+### Linux
+
+1. **Node.js ≥ 20.** Use your distro's package manager,
+   [nvm](https://github.com/nvm-sh/nvm), or [nodesource](https://github.com/nodesource/distributions):
+
+   ```bash
+   # nvm (recommended — avoids old distro Node)
+   nvm install 20
+   node --version             # must be v20.x or newer
+   ```
+
+2. **Keychain backend (`libsecret`).** The device token is stored via the
+   Secret Service API, which needs the `libsecret` dev headers at install time
+   **and** a running Secret Service provider at runtime.
+
+   ```bash
+   # Debian / Ubuntu
+   sudo apt install libsecret-1-dev gnome-keyring
+
+   # Fedora / RHEL
+   sudo dnf install libsecret-devel gnome-keyring
+
+   # Arch
+   sudo pacman -S libsecret gnome-keyring
+   ```
+
+   - On a **GNOME or KDE desktop**, a keyring (`gnome-keyring` / `kwalletd`) is
+     already running — nothing more to do.
+   - On a **headless server / SSH session / container**, no keyring runs by
+     default, so storing the token will fail. Start one for the session, e.g.:
+
+     ```bash
+     # unlock a gnome-keyring daemon for this shell session
+     eval "$(gnome-keyring-daemon --start --components=secrets)"
+     export GNOME_KEYRING_CONTROL
+     ```
+
+     (Or run the collector under a desktop session that already provides one.)
+
+3. **Install and pair:**
+
+   ```bash
+   npm install -g agentsofmine-collector
+   aom pair
+   aom start
+   ```
+
+> **Windows:** not yet supported — see [Requirements](#requirements) and
+> [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md). We're looking for a Windows
+> volunteer; details under [Contributing](#contributing).
 
 ---
 

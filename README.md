@@ -199,6 +199,7 @@ agentsofmine-collector  (runs as an MCP server: `aom start`)
     ~/.local/share/opencode/opencode.db   (OpenCode — SQLite)
     ~/.claude/projects/*/*.jsonl          (Claude Code — JSONL)
     ~/.codex/sessions/                    (Codex — JSON)
+    ~/.pi/agent/sessions/                 (Pi — JSONL)
         │
         ▼
   Normalize → POST /sync (Bearer device-token)
@@ -227,6 +228,7 @@ Each provider has its own adapter that knows the local session format.
 | Claude Code | ✅ Phase 1 | `~/.claude/projects/` |
 | OpenCode | ✅ Phase 1 | `~/.local/share/opencode/opencode.db` |
 | Codex | ✅ Phase 1 | `~/.codex/sessions/` |
+| Pi | ✅ Phase 1 | `~/.pi/agent/sessions/` |
 | Cursor | 🔜 Community | — |
 | GitHub Copilot Chat | 🔜 Community | — |
 | Gemini CLI | 🔜 Community | — |

@@ -7,20 +7,23 @@ import { truncateMessages } from "../../core/message-truncation.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+type DbOpener = typeof openReadOnlyDb;
+
 export class OpenCodeAdapter implements Adapter {
   readonly name = "opencode";
 
   constructor(
     private readonly dbPath: string = join(homedir(), ".local", "share", "opencode", "opencode.db"),
     private readonly projectPath: string = homedir(),
+    private readonly openDb: DbOpener = openReadOnlyDb,
   ) {}
 
   async *listNewSessions(cursor: Cursor): AsyncIterable<SyncItem> {
     if (!existsSync(this.dbPath)) return;
 
-    let db: ReturnType<typeof openReadOnlyDb> | undefined;
+    let db: ReturnType<DbOpener> | undefined;
     try {
-      db = openReadOnlyDb(this.dbPath);
+      db = this.openDb(this.dbPath);
       const rows = querySessions(db, cursor.value);
       for (const row of rows) {
         const session = mapRow(row, this.projectPath);

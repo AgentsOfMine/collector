@@ -20,22 +20,27 @@ const version = "0.1.0";
 // should import ConfigRepository directly.
 const configRepo = new ConfigRepository();
 
-export async function loadConfig(): Promise<Config> {
+type KeychainTokenReader = () => Promise<string | null>;
+
+export async function loadConfig(
+  readKeychainToken: KeychainTokenReader = getDeviceToken,
+  repo: ConfigRepository = configRepo,
+): Promise<Config> {
   const syncUrl = process.env["AOM_SYNC_URL"] ?? "https://agentsofmine.io/sync";
 
   // Device ID: env override → config.json → device-id file → fallback
   const deviceId =
     process.env["AOM_DEVICE_ID"] ??
-    configRepo.readPairingConfig()?.deviceId ??
-    configRepo.readDeviceId() ??
+    repo.readPairingConfig()?.deviceId ??
+    repo.readDeviceId() ??
     "dev_local";
 
   // Device token: env override → config.json field → OS keychain → empty string
-  const tokenFromFile = configRepo.readDeviceToken();
+  const tokenFromFile = repo.readDeviceToken();
   const deviceToken =
     process.env["AOM_DEVICE_TOKEN"] ??
     tokenFromFile ??
-    (await getDeviceToken()) ??
+    (await readKeychainToken()) ??
     "";
 
   return {

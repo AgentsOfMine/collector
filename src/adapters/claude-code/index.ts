@@ -5,6 +5,7 @@ import type { Adapter, Cursor, SyncItem } from "../adapter.js";
 import { readJsonlFrom } from "./jsonl-reader.js";
 import { createAccumulator, processEvent, finalizeSession } from "./mapper.js";
 import { truncateMessages } from "../../core/message-truncation.js";
+import { debugLog } from "../../core/debug-log.js";
 
 /**
  * Filesystem seam for discovering `.jsonl` session files. Injectable so file
@@ -95,7 +96,8 @@ export class ClaudeCodeAdapter implements Adapter {
           processEvent(acc, line);
           lastOffset = byteOffset;
         }
-      } catch {
+      } catch (err) {
+        debugLog(`claude-code: failed reading ${filePath}`, err);
         continue;
       }
 

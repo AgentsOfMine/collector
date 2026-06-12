@@ -5,14 +5,17 @@ import {
   finalizeSession,
 } from "../../../src/adapters/pi/mapper.js";
 
+const PI_FILE =
+  "/home/user/.pi/agent/sessions/--home-user-proj--/2026-06-03T10-00-00-000Z_019ebc41-4486-7f9a-a94b-0ed9e6fa37d1.jsonl";
+
 function feed(lines: unknown[]): ReturnType<typeof finalizeSession> {
-  const acc = createAccumulator("/home/user/proj/2024_abc.jsonl");
+  const acc = createAccumulator(PI_FILE);
   for (const line of lines) processEntry(acc, line);
   return finalizeSession(acc);
 }
 
 function accFor(lines: unknown[]) {
-  const acc = createAccumulator("/home/user/proj/2024_abc.jsonl");
+  const acc = createAccumulator(PI_FILE);
   for (const line of lines) processEntry(acc, line);
   return acc;
 }
@@ -202,7 +205,7 @@ describe("pi mapper", () => {
     expect(session.filesChanged).toBeNull();
   });
 
-  it("falls back to the file path when no session header is present", () => {
+  it("derives sessionId and projectPath from the file path when the header is missing", () => {
     const session = feed([
       {
         type: "message",
@@ -211,7 +214,48 @@ describe("pi mapper", () => {
         message: { role: "user", content: "hi" },
       },
     ]);
-    expect(session.sessionId).toBe("/home/user/proj/2024_abc.jsonl");
+    expect(session.sessionId).toBe("019ebc41-4486-7f9a-a94b-0ed9e6fa37d1");
+    expect(session.projectPath).toBe("/home/user/proj");
     expect(session.messageCount).toBe(1);
+  });
+
+  it("keeps path-derived identity stable on a mid-file resync that skips the header", () => {
+    const headerless = feed([
+      {
+        type: "message",
+        id: "m2",
+        timestamp: "2026-06-03T10:05:00.000Z",
+        message: { role: "assistant", content: [{ type: "text", text: "more output" }] },
+      },
+    ]);
+    const withHeader = feed([
+      header,
+      {
+        type: "message",
+        id: "m1",
+        timestamp: "2026-06-03T10:00:01.000Z",
+        message: { role: "user", content: "fix the bug" },
+      },
+    ]);
+    expect(headerless.sessionId).toBe("019ebc41-4486-7f9a-a94b-0ed9e6fa37d1");
+    expect(headerless.provider).toBe("pi");
+    expect(headerless.projectPath).toBe("/home/user/proj");
+    expect(headerless.sessionId).not.toContain(".jsonl");
+    expect(withHeader.projectPath).toBe(headerless.projectPath);
+  });
+
+  it("lets the in-band header cwd override the lossy path-decoded projectPath", () => {
+    const acc = createAccumulator(
+      "/home/user/.pi/agent/sessions/--home-user-my-proj--/2026-06-03T10-00-00-000Z_019ebc41-4486-7f9a-a94b-0ed9e6fa37d1.jsonl",
+    );
+    processEntry(acc, { ...header, cwd: "/home/user/my-proj" });
+    processEntry(acc, {
+      type: "message",
+      id: "m1",
+      timestamp: "2026-06-03T10:00:01.000Z",
+      message: { role: "user", content: "hi" },
+    });
+    const session = finalizeSession(acc);
+    expect(session.projectPath).toBe("/home/user/my-proj");
   });
 });

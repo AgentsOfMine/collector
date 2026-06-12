@@ -1,3 +1,4 @@
+import { basename, dirname } from "node:path";
 import type { CanonicalSession, CanonicalMessage, CanonicalPart } from "../../core/canonical.js";
 import { projectFields } from "../../core/project-identity.js";
 
@@ -125,8 +126,8 @@ function contentToParts(content: PiContent[], toolNameById: Map<string, string>)
 }
 
 export interface SessionAccumulator {
-  sessionId: string | null;
-  projectPath: string | null;
+  sessionId: string;
+  projectPath: string;
   title: string | null;
   modelLine: string | null;
   startedAt: string | null;
@@ -138,13 +139,34 @@ export interface SessionAccumulator {
   pendingEdit: Map<string, string>;
   messages: CanonicalMessage[];
   toolNameById: Map<string, string>;
-  fallbackId: string;
+}
+
+/**
+ * Pi puts the session UUID in the filename (`<ts>_<uuid>.jsonl`, unambiguous)
+ * and the cwd in the parent dir (`--<cwd>--` with `/`→`-`, LOSSY to reverse).
+ * Deriving identity from the path keeps it stable when an incremental sync
+ * resumes mid-file and never re-reads the in-band `session` header; the header
+ * `id`/`cwd` override these structurally-derived values when observed.
+ */
+const PI_UUID_RE = /_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+
+export function sessionIdFromFilePath(filePath: string): string | null {
+  const stem = basename(filePath, ".jsonl");
+  const match = PI_UUID_RE.exec(stem);
+  return match?.[1] ?? null;
+}
+
+export function cwdFromSessionDir(filePath: string): string | null {
+  const dir = basename(dirname(filePath));
+  if (!dir.startsWith("--") || !dir.endsWith("--") || dir.length <= 4) return null;
+  const inner = dir.slice(2, -2);
+  return "/" + inner.replace(/-/g, "/");
 }
 
 export function createAccumulator(filePath: string): SessionAccumulator {
   return {
-    sessionId: null,
-    projectPath: null,
+    sessionId: sessionIdFromFilePath(filePath) ?? filePath,
+    projectPath: cwdFromSessionDir(filePath) ?? filePath,
     title: null,
     modelLine: null,
     startedAt: null,
@@ -156,7 +178,6 @@ export function createAccumulator(filePath: string): SessionAccumulator {
     pendingEdit: new Map(),
     messages: [],
     toolNameById: new Map(),
-    fallbackId: filePath,
   };
 }
 
@@ -203,7 +224,6 @@ export function processEntry(acc: SessionAccumulator, raw: unknown): void {
     }
     return;
   }
-
   if (entry.type !== "message" || !entry.message) return;
 
   const ts = entry.timestamp;
@@ -260,20 +280,18 @@ function pushMessage(
 ): void {
   if (parts.length === 0) return;
   acc.messageCount++;
-  const sessionId = acc.sessionId ?? acc.fallbackId;
+  const sessionId = acc.sessionId;
   const messageId = typeof entry.id === "string" ? entry.id : `${sessionId}-${acc.messageCount}`;
   const createdAt = typeof entry.timestamp === "string" ? entry.timestamp : new Date(0).toISOString();
   acc.messages.push({ messageId, sessionId, role, senderName, createdAt, parts });
 }
 
 export function finalizeSession(acc: SessionAccumulator): CanonicalSession {
-  const sessionId = acc.sessionId ?? acc.fallbackId;
-  const projectPath = acc.projectPath ?? acc.fallbackId;
   const filesChanged = acc.filesChanged.size > 0 ? Array.from(acc.filesChanged) : null;
   return {
-    sessionId,
+    sessionId: acc.sessionId,
     provider: "pi",
-    ...projectFields(projectPath),
+    ...projectFields(acc.projectPath),
     agentName: "Pi",
     title: acc.title,
     modelLine: acc.modelLine,

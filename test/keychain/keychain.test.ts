@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock keytar before importing keychain module
+// Mock keytar before importing the keychain module so the real OS keychain
+// is never touched. This pins the wrapper's service/account constants and its
+// KeychainError translation behaviour.
 vi.mock("keytar", () => ({
   default: {
     setPassword: vi.fn(),
@@ -17,7 +19,7 @@ import {
   getDeviceToken,
   deleteDeviceToken,
   isPaired,
-} from "../../../src/keychain/index.ts";
+} from "../../src/keychain/index.js";
 
 describe("keychain", () => {
   beforeEach(() => {
@@ -71,6 +73,11 @@ describe("keychain", () => {
       keytarMock.deletePassword.mockResolvedValueOnce(false);
       const result = await deleteDeviceToken();
       expect(result).toBe(false);
+    });
+
+    it("throws KeychainError when keytar fails", async () => {
+      keytarMock.deletePassword.mockRejectedValueOnce(new Error("access denied"));
+      await expect(deleteDeviceToken()).rejects.toMatchObject({ name: "KeychainError" });
     });
   });
 

@@ -73,6 +73,9 @@ export async function runStart(opts: StartOptions = {}): Promise<void> {
       f.endsWith(".jsonl"),
     ),
     new DirectoryWatcher("codex", codexDir, state, syncRunner),
+    new DirectoryWatcher("pi", config.piSessionsDir, state, syncRunner, (f) =>
+      f.endsWith(".jsonl"),
+    ),
   ];
 
   for (const w of watchers) {

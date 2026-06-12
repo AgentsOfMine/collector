@@ -13,6 +13,7 @@ import { FileCursorStore } from "./cursor-store.js";
 import { OpenCodeAdapter } from "../adapters/opencode/index.js";
 import { ClaudeCodeAdapter } from "../adapters/claude-code/index.js";
 import { CodexAdapter } from "../adapters/codex/index.js";
+import { PiAdapter } from "../adapters/pi/index.js";
 import type { Adapter } from "../adapters/adapter.js";
 
 export class NotPairedError extends Error {
@@ -49,6 +50,7 @@ export async function performSync(): Promise<SyncSummary> {
     new OpenCodeAdapter(config.opencodeDbPath),
     new ClaudeCodeAdapter(config.claudeProjectsGlob),
     new CodexAdapter(config.codexSessionsDir),
+    new PiAdapter(config.piSessionsDir),
   ];
 
   const cursorStore = new FileCursorStore();

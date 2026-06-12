@@ -11,6 +11,7 @@ export interface Config {
   opencodeDbPath: string;
   claudeProjectsGlob: string;
   codexSessionsDir: string;
+  piSessionsDir: string;
 }
 
 const version = "0.1.0";
@@ -45,5 +46,6 @@ export async function loadConfig(): Promise<Config> {
     opencodeDbPath: join(homedir(), ".local", "share", "opencode", "opencode.db"),
     claudeProjectsGlob: join(homedir(), ".claude", "projects", "*", "*.jsonl"),
     codexSessionsDir: join(homedir(), ".codex", "sessions"),
+    piSessionsDir: join(homedir(), ".pi", "agent", "sessions"),
   };
 }

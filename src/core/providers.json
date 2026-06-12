@@ -1,0 +1,4 @@
+{
+  "$comment": "Registry of provider ids the collector is allowed to emit and the backend will accept. To add a provider (e.g. \"pi\"), append its id here, then add the matching adapter under src/adapters/<id>/ and wire it in src/core/perform-sync.ts. The backend stores this value verbatim in the session sort key and only requires it to be non-empty, so no backend change is needed to accept a new id.",
+  "providers": ["claude-code", "opencode", "codex", "pi"]
+}

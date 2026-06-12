@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { KNOWN_PROVIDERS, isKnownProvider } from "./providers.js";
 
 export const ProjectIdentitySchema = z.object({
   kind: z.enum(["git", "path-legacy"]),
@@ -23,7 +24,10 @@ export type ProjectIdentity = z.infer<typeof ProjectIdentitySchema>;
 
 export const CanonicalSessionSchema = z.object({
   sessionId: z.string(),
-  provider: z.enum(["claude-code", "opencode", "codex"]),
+  // Allowlist is data-driven via providers.json (see ./providers.ts), not a hardcoded enum.
+  provider: z.string().refine(isKnownProvider, {
+    message: `provider must be one of: ${KNOWN_PROVIDERS.join(", ")}`,
+  }),
   projectId: z.string(),
   projectPath: z.string(),
   projectIdentity: ProjectIdentitySchema.optional(),

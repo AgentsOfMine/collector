@@ -35,6 +35,7 @@ const PAIRED_CONFIG = {
   opencodeDbPath: "/tmp/opencode.db",
   claudeProjectsGlob: "/tmp/.claude/projects/*/*.jsonl",
   codexSessionsDir: "/tmp/.codex/sessions",
+  piSessionsDir: "/tmp/.pi/agent/sessions",
 };
 
 let exitSpy: ReturnType<typeof vi.spyOn>;
@@ -86,13 +87,13 @@ describe("aom sync — wiring", () => {
     vi.mocked(loadConfig).mockResolvedValue(PAIRED_CONFIG);
   });
 
-  it("calls the core runSync engine with all three provider adapters", async () => {
+  it("calls the core runSync engine with all provider adapters", async () => {
     await runSyncCommand();
 
     expect(runSyncMock).toHaveBeenCalledOnce();
     const adapters = runSyncMock.mock.calls[0]?.[0] as Adapter[];
     const names = adapters.map((a) => a.name).sort();
-    expect(names).toEqual(["claude-code", "codex", "opencode"]);
+    expect(names).toEqual(["claude-code", "codex", "opencode", "pi"]);
   });
 
   it("passes the resolved sync config to the engine", async () => {

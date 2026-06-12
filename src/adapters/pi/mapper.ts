@@ -220,12 +220,16 @@ export function processEntry(acc: SessionAccumulator, raw: unknown): void {
 
   if (msg.role === "toolResult") {
     applyEditResult(acc, msg);
-    const callId = msg.toolCallId;
-    const name = callId ? (acc.toolNameById.get(callId) ?? msg.toolName ?? "unknown") : (msg.toolName ?? "unknown");
     const output = firstText(msg.content);
-    pushMessage(acc, entry, "assistant", "Pi", [
-      { type: "tool", tool: name, callId, output: output ? output.slice(0, 500) : undefined },
-    ]);
+    // A toolResult is the outcome of an earlier toolCall, not a new tool
+    // invocation. Render its message as text (e.g. "Successfully replaced 2
+    // block(s) in …") rather than a second, input-less tool card that would
+    // show as a bare "edit"/"read" row with no file path.
+    if (output && output.trim().length > 0) {
+      pushMessage(acc, entry, "assistant", "Pi", [
+        { type: "text", text: output.slice(0, 500) },
+      ]);
+    }
     return;
   }
 

@@ -25,7 +25,7 @@ Usage:
   aom pair [--reset]   Run the device pairing flow
   aom unpair [-y]      Remove the device token and clear local state
   aom status           Print last sync status as JSON
-  aom sync             Trigger one sync cycle and print result JSON
+  aom sync             Trigger one sync cycle across all providers
 `.trim());
 }
 
@@ -63,28 +63,9 @@ if (subcommand === "start") {
   process.exit(0);
 
 } else if (subcommand === "sync") {
-  const { loadConfig } = await import("./config.js");
-  const { cursorStore } = await import("./core/cursor-store.js");
-  const { OpenCodeAdapter } = await import("./adapters/opencode/index.js");
-  const { ClaudeCodeAdapter } = await import("./adapters/claude-code/index.js");
-  const { CodexAdapter } = await import("./adapters/codex/index.js");
-  const { syncNow } = await import("./mcp-tools/sync-now.js");
-
-  const config = await loadConfig();
-  const adapters = [
-    new OpenCodeAdapter(config.opencodeDbPath),
-    new ClaudeCodeAdapter(config.claudeProjectsGlob),
-    new CodexAdapter(config.codexSessionsDir),
-  ];
-  const syncConfig = {
-    syncUrl: config.syncUrl,
-    deviceId: config.deviceId,
-    deviceToken: config.deviceToken,
-    collectorVersion: config.collectorVersion,
-  };
-
-  const result = await syncNow(adapters, syncConfig, cursorStore);
-  console.log(JSON.stringify(result, null, 2));
+  const { runSyncCommand } = await import("./cli/sync.js");
+  const verbose = args.includes("-v") || args.includes("--verbose");
+  await runSyncCommand({ verbose });
   process.exit(0);
 
 } else {

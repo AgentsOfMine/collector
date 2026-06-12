@@ -25,6 +25,7 @@ vi.mock("../../src/core/cursor-store.js", () => ({
 import { runSyncCommand } from "../../src/cli/sync.js";
 import { isPaired } from "../../src/keychain/index.js";
 import { loadConfig } from "../../src/config.js";
+import { KNOWN_PROVIDERS } from "../../src/core/providers.js";
 import type { Adapter } from "../../src/adapters/adapter.js";
 
 const PAIRED_CONFIG = {
@@ -87,13 +88,16 @@ describe("aom sync — wiring", () => {
     vi.mocked(loadConfig).mockResolvedValue(PAIRED_CONFIG);
   });
 
-  it("calls the core runSync engine with all provider adapters", async () => {
+  it("calls the core runSync engine with one adapter per registered provider", async () => {
     await runSyncCommand();
 
     expect(runSyncMock).toHaveBeenCalledOnce();
     const adapters = runSyncMock.mock.calls[0]?.[0] as Adapter[];
     const names = adapters.map((a) => a.name).sort();
-    expect(names).toEqual(["claude-code", "codex", "opencode", "pi"]);
+    // Guard against CLI/registry drift: the sync path must cover every
+    // provider in providers.json (this is exactly the bug where `aom sync`
+    // shipped a 3-adapter list while the registry already had "pi").
+    expect(names).toEqual([...KNOWN_PROVIDERS].sort());
   });
 
   it("passes the resolved sync config to the engine", async () => {

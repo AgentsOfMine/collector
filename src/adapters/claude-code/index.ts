@@ -55,8 +55,9 @@ export class ClaudeCodeAdapter implements Adapter {
   constructor(
     projectsGlob: string = join(homedir(), ".claude", "projects", "*", "*.jsonl"),
   ) {
-    this.projectsDir = join(homedir(), ".claude", "projects");
-    void projectsGlob;
+    this.projectsDir = projectsGlob
+      .replace(/[/\\]\*[/\\]\*\.jsonl$/, "")
+      .replace(/[/\\]\*\.jsonl$/, "");
   }
 
   async *listNewSessions(cursor: Cursor): AsyncIterable<SyncItem> {

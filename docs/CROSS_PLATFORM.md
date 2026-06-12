@@ -1,8 +1,15 @@
 # Cross-Platform Support — Research & Port Plan
 
-> **Status:** Research only. No code changes yet. This document inventories the
-> macOS-centric assumptions in the collector and lays out a concrete plan to
-> support Linux and Windows.
+> **Status:** Research + initial macOS/Linux enablement.
+>
+> **Decision (2026-06-12):** Target **macOS + Linux first** (covers ~70% of
+> developers). **Windows is deferred** — its open items (verified session paths,
+> `SIGTERM`/`0o600` handling, MSVC build-tool friction) are tracked below but not
+> being implemented yet.
+>
+> **Done so far:** `engines.node` bumped to `>=20` (fixes Linux recursive
+> `fs.watch`); README documents the Linux `libsecret` + Secret-Service runtime
+> requirement.
 >
 > **Date:** 2026-06-12. Verify version-specific claims (Node, native modules)
 > before implementing — the ecosystem moves fast.

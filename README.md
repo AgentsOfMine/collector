@@ -8,11 +8,24 @@ Works with any editor or terminal — Claude Code CLI, OpenCode CLI, Cursor, Zed
 
 ## Requirements
 
-- **Node.js ≥ 18** (`node --version`)
+**Supported platforms:** macOS and Linux.
+
+> **Windows:** not yet supported. The port is scoped out in
+> [`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md), but we need a **volunteer on
+> Windows** to verify the session-directory paths (OpenCode, Claude Code, Codex,
+> Pi) and test the keychain + file-watcher behavior there. If that's you, open an
+> issue or PR — see [Contributing](#contributing).
+
+- **Node.js ≥ 20** (`node --version`). Node 20+ is required for reliable
+  recursive file watching on Linux.
 - A native keychain backend, used to store the device token:
   - macOS — Keychain (built in)
-  - Windows — Credential Manager (built in)
-  - Linux — `libsecret` (e.g. `sudo apt install libsecret-1-dev` on Debian/Ubuntu)
+  - Linux — `libsecret` plus a **running Secret Service**:
+    - Build dependency: `libsecret-1-dev` (e.g. `sudo apt install libsecret-1-dev`
+      on Debian/Ubuntu).
+    - Runtime: a Secret Service provider must be running — `gnome-keyring` on
+      GNOME, `kwalletd` on KDE. **Headless servers without one will fail to
+      store the device token** until a keyring is available.
 
 ---
 
@@ -187,6 +200,14 @@ The implementation lives in [`src/`](src/):
 ## Contributing
 
 The highest-value contribution is a **provider adapter** for an agent we don't ship with. Implement the `Adapter` interface in [`src/adapters/adapter.ts`](src/adapters/adapter.ts), add tests under [`test/`](test/), and open a PR.
+
+**Windows support** is also open for a volunteer. The work is scoped in
+[`docs/CROSS_PLATFORM.md`](docs/CROSS_PLATFORM.md) — primarily verifying each
+agent's session-directory paths on Windows and testing the keychain and file
+watchers. Ship Windows support and you become a
+[founding contributor](https://agentsofmine.io#contributors): your name in the
+README and a **lifetime Pro account when Pro launches**. If you run Windows and
+want to help, open an issue to coordinate.
 
 Bug reports and issues: [github.com/AgentsOfMine/collector/issues](https://github.com/AgentsOfMine/collector/issues)
 

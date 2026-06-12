@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "aom": "./dist/cli.js"
+    "aom": "./dist/bin/aom.js"
   },
   "files": [
     "dist"

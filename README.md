@@ -84,7 +84,7 @@ npm test           # run the test suite
 npm run check      # build + lint + test in one step
 
 # run the locally built CLI without a global install
-node dist/cli.js --version
+node dist/bin/aom.js --version
 
 # optional — link it as the global `aom` command
 npm link
@@ -173,7 +173,7 @@ No CLI required for VS Code users.
 
 The implementation lives in [`src/`](src/):
 - **MCP server entrypoint and tool definitions** — [`src/index.ts`](src/index.ts) (`sync_now`, `status`)
-- **CLI dispatcher and subcommands** — [`src/cli.ts`](src/cli.ts), [`src/cli/`](src/cli/) (`pair`, `start`, `status`, `sync`, `unpair`)
+- **CLI dispatcher and subcommands** — [`src/bin/aom.ts`](src/bin/aom.ts), [`src/cli/`](src/cli/) (`pair`, `start`, `status`, `sync`, `unpair`)
 - **Provider adapters** — [`src/adapters/`](src/adapters/) (one per provider, implementing [`adapter.ts`](src/adapters/adapter.ts))
 - **Session normalization schema** (`CanonicalSession` + `CanonicalMessage`) — [`src/core/canonical.ts`](src/core/canonical.ts)
 - **Project identity resolution** (Git remote normalization, multi-device dedup) — [`src/core/project-identity.ts`](src/core/project-identity.ts), [`src/core/git-identity.ts`](src/core/git-identity.ts)

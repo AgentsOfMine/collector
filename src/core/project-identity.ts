@@ -42,7 +42,7 @@ export function resolveProjectIdentity(projectPath: string, run?: GitRunner): Pr
     return {
       kind: "git",
       canonical: git.canonical,
-      displayName: repoNameFromCanonical(git.canonical) ?? local.basename,
+      displayName: repoNameFromCanonical(git.canonical) ?? displayNameForPath(projectPath, local.basename),
       git: {
         root: git.root,
         remoteName: git.remoteName,
@@ -57,9 +57,18 @@ export function resolveProjectIdentity(projectPath: string, run?: GitRunner): Pr
   return {
     kind: "path-legacy",
     canonical: `path:${legacyProjectId(projectPath)}`,
-    displayName: local.basename,
+    displayName: displayNameForPath(projectPath, local.basename),
     local,
   };
+}
+
+/**
+ * basename("/") is "" — an empty name surfaces as a raw hash in the UI.
+ * OpenCode records `/` for sessions run outside any project, so label it "Global".
+ */
+function displayNameForPath(projectPath: string, base: string): string {
+  if (base.length > 0) return base;
+  return projectPath === "/" ? "Global" : projectPath;
 }
 
 /**

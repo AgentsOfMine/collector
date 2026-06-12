@@ -75,4 +75,11 @@ describe("resolveProjectIdentity", () => {
     expect(identity.git?.remoteUrl).not.toContain("token");
     expect(identity.git?.remoteUrl).not.toContain("@");
   });
+
+  it("labels the root path '/' as 'Global' instead of an empty name", () => {
+    const run = stubRunner({});
+    const identity = resolveProjectIdentity("/", run);
+    expect(identity.kind).toBe("path-legacy");
+    expect(identity.displayName).toBe("Global");
+  });
 });

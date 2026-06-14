@@ -154,7 +154,8 @@ aom start
 | `aom pair --force` | Discard the existing pairing and start a fresh one (also accepts `--reset`) |
 | `aom pair --no-browser` | Pair without auto-opening the browser |
 | `aom start` | Starts the MCP server (stdio) with file watchers and sync tools |
-| `aom status` | Prints the last sync result as JSON |
+| `aom status` | Prints pairing status and last-synced timestamps |
+| `aom status --json` | Prints a single machine-readable JSON line (`paired`, `deviceId`, `lastSyncAt`, `queueDepth`, `lastError`) — used by the VS Code extension |
 | `aom sync` | Runs one sync cycle now and prints the result as JSON |
 | `aom unpair [-y]` | Removes the device token from the keychain and clears local state (`-y` skips the prompt) |
 | `aom --version` | Prints the installed version |
@@ -243,12 +244,14 @@ Each provider has its own adapter that knows the local session format.
 
 The [VS Code extension](https://github.com/AgentsOfMine/vscode-agentsofmine) installs and manages this package automatically:
 
-1. Install the extension from the Marketplace
-2. On first activation, if `aom` is not found on PATH, the extension prompts: *"AgentsOfMine Collector not found. Install it now?"*
-3. Click **Install** — the extension runs `npm install -g agentsofmine-collector` in a visible terminal
-4. The extension calls `aom pair` (via a webview panel) and `aom start`
+1. Install the extension from the Marketplace.
+2. On first activation it provisions this collector silently in the background (`npm install -g agentsofmine-collector` in a hidden task) — no terminal pop-up. If Node/npm aren't on your PATH, it falls back to a visible terminal install.
+3. Pairing happens in a native VS Code webview panel (QR + pairing code + countdown), not the terminal. The device token is stored in VS Code's `SecretStorage`.
+4. The status bar shows a live sync indicator once you're paired.
 
 No CLI required for VS Code users.
+
+> **Why are there two repositories?** The collector is editor-agnostic and open-source so it works with any agent on any editor or terminal, and so you can read every line that runs on your machine. The VS Code extension is a thin, friendly wrapper that installs the collector, handles pairing with a QR code, and shows sync status in your status bar. VS Code users install the extension; everyone else installs the collector.
 
 ---
 

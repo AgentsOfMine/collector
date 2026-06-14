@@ -65,8 +65,9 @@ program
 program
   .command("status")
   .description("Show pairing status and last-synced timestamps")
-  .action(async () => {
-    await runStatus();
+  .option("--json", "Print machine-readable status as a single JSON object")
+  .action(async (opts: { json?: boolean }) => {
+    await runStatus({ json: opts.json });
   });
 
 program

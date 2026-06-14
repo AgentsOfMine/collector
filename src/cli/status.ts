@@ -7,11 +7,83 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const STATE_DIR = join(homedir(), ".agentsofmine");
-const DEVICE_ID_FILE = join(STATE_DIR, "device-id");
-const LAST_SYNC_FILE = join(STATE_DIR, "last-sync.json");
+function stateDir(): string {
+  return process.env.HOME || process.env.USERPROFILE || homedir();
+}
 
-export async function runStatus(): Promise<void> {
+function deviceIdFile(): string {
+  return join(stateDir(), ".agentsofmine", "device-id");
+}
+
+function lastSyncFile(): string {
+  return join(stateDir(), ".agentsofmine", "last-sync.json");
+}
+
+export interface StatusJson {
+  paired: boolean;
+  deviceId: string | null;
+  lastSyncAt: string | null;
+  queueDepth: number;
+  lastError: { kind: string; message: string } | null;
+}
+
+export interface StatusOptions {
+  json?: boolean;
+}
+
+function readDeviceId(): string | null {
+  if (!existsSync(deviceIdFile())) {
+    return null;
+  }
+  return readFileSync(deviceIdFile(), "utf8").trim() || null;
+}
+
+function readLastSyncMap(): Record<string, string> {
+  if (!existsSync(lastSyncFile())) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(lastSyncFile(), "utf8"));
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>;
+    }
+  } catch {
+    return {};
+  }
+  return {};
+}
+
+function newestSyncTimestamp(map: Record<string, string>): string | null {
+  const times = Object.values(map).filter((v) => typeof v === "string");
+  if (times.length === 0) {
+    return null;
+  }
+  return times.reduce((newest, ts) =>
+    new Date(ts).getTime() > new Date(newest).getTime() ? ts : newest,
+  );
+}
+
+export async function buildStatus(): Promise<StatusJson> {
+  const paired = await isPaired();
+  const syncMap = readLastSyncMap();
+  return {
+    paired,
+    deviceId: readDeviceId(),
+    lastSyncAt: newestSyncTimestamp(syncMap),
+    // queueDepth and lastError are not yet tracked by the collector;
+    // emitted as honest placeholders so the JSON contract is stable.
+    queueDepth: 0,
+    lastError: null,
+  };
+}
+
+export async function runStatus(options: StatusOptions = {}): Promise<void> {
+  if (options.json) {
+    const status = await buildStatus();
+    console.log(JSON.stringify(status));
+    return;
+  }
+
   const paired = await isPaired();
 
   console.log("\nagentsofmine-collector status\n");
@@ -23,8 +95,8 @@ export async function runStatus(): Promise<void> {
   }
 
   // Device ID
-  if (existsSync(DEVICE_ID_FILE)) {
-    const deviceId = readFileSync(DEVICE_ID_FILE, "utf8").trim();
+  if (existsSync(deviceIdFile())) {
+    const deviceId = readFileSync(deviceIdFile(), "utf8").trim();
     console.log(`  Device ID:     \x1b[2m${deviceId}\x1b[0m`);
   }
 
@@ -33,8 +105,8 @@ export async function runStatus(): Promise<void> {
   console.log(`  Device token:  ${token ? "\x1b[32m✓ present in keychain\x1b[0m" : "\x1b[31m✗ missing\x1b[0m"}`);
 
   // Last sync timestamps per watcher
-  if (existsSync(LAST_SYNC_FILE)) {
-    const raw = readFileSync(LAST_SYNC_FILE, "utf8");
+  if (existsSync(lastSyncFile())) {
+    const raw = readFileSync(lastSyncFile(), "utf8");
     const syncState = JSON.parse(raw) as Record<string, string>;
     console.log("\n  Last synced:");
     for (const [watcher, ts] of Object.entries(syncState)) {

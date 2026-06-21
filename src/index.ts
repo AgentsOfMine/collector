@@ -9,6 +9,7 @@ import { cursorStore } from "./core/cursor-store.js";
 import { OpenCodeAdapter } from "./adapters/opencode/index.js";
 import { ClaudeCodeAdapter } from "./adapters/claude-code/index.js";
 import { CodexAdapter } from "./adapters/codex/index.js";
+import { PiAdapter } from "./adapters/pi/index.js";
 import { syncNow } from "./mcp-tools/sync-now.js";
 import { getStatusPayload } from "./mcp-tools/status.js";
 
@@ -18,6 +19,7 @@ const adapters = [
   new OpenCodeAdapter(config.opencodeDbPath),
   new ClaudeCodeAdapter(config.claudeProjectsGlob),
   new CodexAdapter(config.codexSessionsDir),
+  new PiAdapter(config.piSessionsDir),
 ];
 
 const syncConfig = {

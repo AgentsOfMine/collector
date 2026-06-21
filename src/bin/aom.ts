@@ -33,11 +33,12 @@ program
   .description("Pair this machine with your AgentsOfMine account (one-time setup)")
   .option("--no-browser", "Skip auto-opening the approval URL in the browser")
   .option("--force", "Re-pair even if this machine is already paired")
+  .option("--reset", "Alias for --force: discard the existing pairing and start fresh")
   .option("--api-base-url <url>", "Override API base URL (for development)")
-  .action(async (opts: { browser: boolean; force: boolean; apiBaseUrl?: string }) => {
+  .action(async (opts: { browser: boolean; force: boolean; reset: boolean; apiBaseUrl?: string }) => {
     await runPair({
       noBrowser: !opts.browser,
-      force: opts.force,
+      force: opts.force || opts.reset,
       ...(opts.apiBaseUrl !== undefined ? { apiBaseUrl: opts.apiBaseUrl } : {}),
     });
   });

@@ -41,6 +41,57 @@ function makeToolResult(toolUseId: string, isError?: boolean) {
   };
 }
 
+describe("ClaudeCode mapper — project path", () => {
+  const FILE = "/home/user/.claude/projects/-Users-dev-Projects-my-app/session-abc.jsonl";
+
+  function withCwd(event: Record<string, unknown>, cwd: string) {
+    return { ...event, cwd };
+  }
+
+  it("uses the cwd recorded in the session, not the ~/.claude/projects directory", () => {
+    const acc = createAccumulator(FILE);
+    processEvent(acc, withCwd(makeUserEvent("u1", [{ type: "text", text: "hi" }]), "/Users/dev/Projects/my-app"));
+    expect(finalizeSession(acc).projectPath).toBe("/Users/dev/Projects/my-app");
+  });
+
+  it("keeps the first cwd seen when a later event reports another directory", () => {
+    const acc = createAccumulator(FILE);
+    processEvent(acc, withCwd(makeUserEvent("u1", [{ type: "text", text: "a" }]), "/Users/dev/Projects/my-app"));
+    processEvent(acc, withCwd(makeAssistantEvent("a1", [{ type: "text", text: "b" }]), "/Users/dev/Projects/my-app/packages/x"));
+    expect(finalizeSession(acc).projectPath).toBe("/Users/dev/Projects/my-app");
+  });
+
+  it("finds cwd on a later event when earlier lines carry none (mid-file resume)", () => {
+    const acc = createAccumulator(FILE);
+    processEvent(acc, { type: "summary", summary: "compaction marker" });
+    processEvent(acc, withCwd(makeAssistantEvent("a1", [{ type: "text", text: "x" }]), "/Users/dev/Projects/my-app"));
+    expect(finalizeSession(acc).projectPath).toBe("/Users/dev/Projects/my-app");
+  });
+
+  it("ignores a non-string or empty cwd", () => {
+    const acc = createAccumulator(FILE);
+    processEvent(acc, { ...makeUserEvent("u1", [{ type: "text", text: "a" }]), cwd: 42 });
+    processEvent(acc, { ...makeUserEvent("u2", [{ type: "text", text: "b" }]), cwd: "" });
+    // Neither value is usable, so this degrades to the decoded directory name.
+    expect(finalizeSession(acc).projectPath).toBe("/Users/dev/Projects/my/app");
+  });
+
+  it("falls back to the decoded project-key directory, never to ~/.claude/projects", () => {
+    const acc = createAccumulator(FILE);
+    processEvent(acc, makeUserEvent("u1", [{ type: "text", text: "hi" }]));
+    const path = finalizeSession(acc).projectPath;
+    expect(path).not.toContain(".claude");
+    // Lossy by nature: "-" in the real path ("my-app") cannot be told from "/".
+    // A cwd on any event overrides this, which is the normal case.
+    expect(path).toBe("/Users/dev/Projects/my/app");
+  });
+
+  it("does not guess a path from a key that is not an encoded absolute path", () => {
+    const acc = createAccumulator("/home/user/.claude/projects/myproject/session-abc.jsonl");
+    expect(acc.projectPath).toBe("myproject");
+  });
+});
+
 describe("ClaudeCode mapper", () => {
   it("creates accumulator with correct sessionId from filename", () => {
     const acc = createAccumulator(SESSION_FILE);

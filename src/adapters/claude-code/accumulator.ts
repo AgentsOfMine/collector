@@ -19,6 +19,7 @@ interface JsonlEvent {
   type?: string;
   uuid?: string;
   timestamp?: string;
+  cwd?: string;
   message?: MessagePayload;
 }
 
@@ -27,6 +28,8 @@ export interface SessionAccumulator {
   projectPath: string;
   title: string | null;
   modelLine: string | null;
+  /** True once a real `cwd` has been read from an event; the path is then final. */
+  projectPathFromCwd: boolean;
   startedAt: string | null;
   endedAt: string | null;
   messageCount: number;
@@ -38,12 +41,26 @@ export interface SessionAccumulator {
   toolNameById: Map<string, string>;
 }
 
+/**
+ * Claude Code stores each project under `~/.claude/projects/<project-key>/`,
+ * where the key is the working directory with `/` replaced by `-`. That
+ * encoding is LOSSY (`my-app` and `my/app` collide), so it is only a fallback:
+ * every user/assistant line also carries the real `cwd`, which `processEvent`
+ * prefers. A key that does not look like an encoded absolute path is returned
+ * as-is rather than guessed at.
+ */
+export function projectPathFromKeyDir(filePath: string): string {
+  const key = basename(dirname(filePath));
+  if (!key.startsWith("-") || key.length < 2) return key;
+  return key.replace(/-/g, "/");
+}
+
 export function createAccumulator(filePath: string): SessionAccumulator {
   const sessionId = basename(filePath, ".jsonl");
-  const projectPath = dirname(dirname(filePath));
   return {
     sessionId,
-    projectPath,
+    projectPath: projectPathFromKeyDir(filePath),
+    projectPathFromCwd: false,
     title: null,
     modelLine: null,
     startedAt: null,
@@ -61,6 +78,11 @@ export function createAccumulator(filePath: string): SessionAccumulator {
 export function processEvent(acc: SessionAccumulator, raw: unknown): void {
   if (typeof raw !== "object" || raw === null) return;
   const event = raw as JsonlEvent;
+
+  if (!acc.projectPathFromCwd && typeof event.cwd === "string" && event.cwd.length > 0) {
+    acc.projectPath = event.cwd;
+    acc.projectPathFromCwd = true;
+  }
 
   const ts = (raw as Record<string, unknown>)["timestamp"];
   if (typeof ts === "string") {

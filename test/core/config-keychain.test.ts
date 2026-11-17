@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { loadConfig } from "../../src/config.js";
+import { COLLECTOR_VERSION } from "../../src/core/version.js";
 import { ConfigRepository } from "../../src/infrastructure/config-repository.js";
 
 const TOKEN_ENV_KEYS = ["AOM_DEVICE_TOKEN", "AOM_DEVICE_ID", "AOM_SYNC_URL"] as const;
@@ -69,7 +70,7 @@ describe("loadConfig — keychain provider seam", () => {
 
   it("does not require a real OS keychain (provider is fully injectable)", async () => {
     const config = await loadConfig(async () => "x", repo);
-    expect(config.collectorVersion).toBe("0.1.1");
+    expect(config.collectorVersion).toBe(COLLECTOR_VERSION);
     expect(config.syncUrl).toContain("agentsofmine.io");
   });
 });

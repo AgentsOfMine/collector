@@ -91,7 +91,7 @@ function handleInitialize(id: string | number | null | undefined): void {
   writeResponse(id, {
     protocolVersion: "2024-11-05",
     capabilities: { tools: {} },
-    serverInfo: { name: "agentsofmine-collector", version: "0.1.0" },
+    serverInfo: { name: "agentsofmine-collector", version: "0.1.1" },
   });
 }
 

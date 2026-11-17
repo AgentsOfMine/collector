@@ -69,7 +69,7 @@ describe("loadConfig — keychain provider seam", () => {
 
   it("does not require a real OS keychain (provider is fully injectable)", async () => {
     const config = await loadConfig(async () => "x", repo);
-    expect(config.collectorVersion).toBe("0.1.0");
+    expect(config.collectorVersion).toBe("0.1.1");
     expect(config.syncUrl).toContain("agentsofmine.io");
   });
 });

@@ -14,7 +14,7 @@ export interface Config {
   piSessionsDir: string;
 }
 
-const version = "0.1.0";
+const version = "0.1.1";
 
 // Shared singleton for internal use — callers that need richer access
 // should import ConfigRepository directly.

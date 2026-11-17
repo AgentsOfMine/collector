@@ -1,8 +1,8 @@
-import { existsSync, readdirSync, type Dirent } from "node:fs";
+import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { Adapter, Cursor, SyncItem } from "../adapter.js";
-import { readJsonlFrom } from "./jsonl-reader.js";
+import { scanJsonl } from "./jsonl-reader.js";
 import { createAccumulator, processEvent, finalizeSession } from "./mapper.js";
 import { truncateMessages } from "../../core/message-truncation.js";
 import { debugLog } from "../../core/debug-log.js";
@@ -36,6 +36,14 @@ function parseCursor(raw: string | null): ClaudeCodeCursor {
     // ignore
   }
   return {};
+}
+
+function sizeOf(filePath: string): number {
+  try {
+    return statSync(filePath).size;
+  } catch {
+    return -1;
+  }
 }
 
 function findJsonlFiles(projectsDir: string, fs: FsReader): string[] {
@@ -88,25 +96,25 @@ export class ClaudeCodeAdapter implements Adapter {
     for (const filePath of files) {
       if (!this.fs.existsSync(filePath)) continue;
       const fromOffset = offsets[filePath] ?? 0;
+      if (fromOffset > 0 && sizeOf(filePath) === fromOffset) continue; // nothing appended since last pass
       const acc = createAccumulator(filePath);
 
-      let lastOffset = fromOffset;
+      let scan;
       try {
-        for await (const { line, byteOffset } of readJsonlFrom(filePath, fromOffset)) {
-          processEvent(acc, line);
-          lastOffset = byteOffset;
-        }
+        scan = await scanJsonl(filePath, fromOffset, (line) => processEvent(acc, line), () => acc.messages.length);
       } catch (err) {
         debugLog(`claude-code: failed reading ${filePath}`, err);
         continue;
       }
 
-      if (acc.messageCount > 0 || acc.linesAdded > 0) {
-        offsets[filePath] = lastOffset;
-        const session = finalizeSession(acc);
-        const messages = truncateMessages(acc.messages);
-        yield { session: { ...session, messages }, cursor: JSON.stringify(offsets) };
-      }
+      // The accumulator saw the whole file, so the session fields are the
+      // session's real ones; only messages from the unsynced tail are sent.
+      const newMessages = acc.messages.slice(scan.newMessagesFrom);
+      if (newMessages.length === 0) continue;
+
+      offsets[filePath] = scan.endOffset;
+      const session = finalizeSession(acc);
+      yield { session: { ...session, messages: truncateMessages(newMessages) }, cursor: JSON.stringify(offsets) };
     }
   }
 }

@@ -53,6 +53,31 @@ describe("readJsonlFrom", () => {
     expect(offsets[1]).toBe(8); // '{"a":1}\n' = 8 bytes
   });
 
+  it("reports endOffset just past each line, including multi-byte text", async () => {
+    const f = join(dir, "s.jsonl");
+    const content = '{"a":"é"}\n{"b":2}\n';
+    writeFileSync(f, content);
+    const ends: number[] = [];
+    for await (const { endOffset } of readJsonlFrom(f, 0)) ends.push(endOffset);
+    expect(ends).toEqual([Buffer.byteLength('{"a":"é"}\n'), Buffer.byteLength(content)]);
+  });
+
+  it("leaves a half-written final line unread so it can be resumed later", async () => {
+    const f = join(dir, "s.jsonl");
+    writeFileSync(f, '{"a":1}\n{"b":');
+    const ends: number[] = [];
+    for await (const { endOffset } of readJsonlFrom(f, 0)) ends.push(endOffset);
+    expect(ends).toEqual([8]);
+  });
+
+  it("accepts a complete final line that has no trailing newline", async () => {
+    const f = join(dir, "s.jsonl");
+    writeFileSync(f, '{"a":1}\n{"b":2}');
+    const ends: number[] = [];
+    for await (const { endOffset } of readJsonlFrom(f, 0)) ends.push(endOffset);
+    expect(ends).toEqual([8, 15]);
+  });
+
   it("restarts from 0 when file shrank below the cursor offset", async () => {
     const f = join(dir, "s.jsonl");
     writeFileSync(f, '{"a":1}\n');

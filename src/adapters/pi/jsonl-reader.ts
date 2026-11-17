@@ -1,1 +1,1 @@
-export { readJsonlFrom } from "../claude-code/jsonl-reader.js";
+export { readJsonlFrom, scanJsonl } from "../claude-code/jsonl-reader.js";

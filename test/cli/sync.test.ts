@@ -16,6 +16,12 @@ vi.mock("../../src/core/sync-engine.js", () => ({
   runSync: (...args: unknown[]) => runSyncMock(...args),
 }));
 
+// Without this, every test run stamps the developer's real ~/.agentsofmine/last-sync.json.
+vi.mock("../../src/core/last-sync-store.js", () => ({
+  recordLastSync: vi.fn(),
+  readLastSync: vi.fn(() => ({})),
+}));
+
 vi.mock("../../src/core/cursor-store.js", () => ({
   FileCursorStore: class {
     flush = vi.fn();

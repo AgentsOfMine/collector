@@ -13,7 +13,7 @@ import { deriveFileChanges } from "./file-changes.js";
 import { truncateMessages } from "../../core/message-truncation.js";
 import { debugLog } from "../../core/debug-log.js";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { opencodeDbPath } from "../../core/paths.js";
 
 type DbOpener = typeof openReadOnlyDb;
 
@@ -50,7 +50,7 @@ export class OpenCodeAdapter implements Adapter {
   readonly name = "opencode";
 
   constructor(
-    private readonly dbPath: string = join(homedir(), ".local", "share", "opencode", "opencode.db"),
+    private readonly dbPath: string = opencodeDbPath(),
     private readonly projectPath: string = homedir(),
     private readonly openDb: DbOpener = openReadOnlyDb,
   ) {}

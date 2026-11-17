@@ -2,14 +2,13 @@ import type { Adapter, Cursor, SyncItem } from "../adapter.js";
 import { projectFields } from "../../core/project-identity.js";
 import { readCodexSessions } from "./log-reader.js";
 import { extractFiles } from "./shell-parser.js";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { codexSessionsDir } from "../../core/paths.js";
 
 export class CodexAdapter implements Adapter {
   readonly name = "codex";
 
   constructor(
-    private readonly sessionsDir: string = join(homedir(), ".codex", "sessions"),
+    private readonly sessionsDir: string = codexSessionsDir(),
   ) {}
 
   async *listNewSessions(cursor: Cursor): AsyncIterable<SyncItem> {

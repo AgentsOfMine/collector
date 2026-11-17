@@ -7,12 +7,9 @@
  */
 
 import { mkdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { SyncRunner } from "./sync-runner.js";
 import { recordLastSync } from "../core/last-sync-store.js";
-
-const STATE_DIR = join(homedir(), ".agentsofmine");
+import { stateDir } from "../core/paths.js";
 
 export interface DaemonStateOptions {
   deviceToken: string;
@@ -28,7 +25,7 @@ export class DaemonState {
   constructor(opts: DaemonStateOptions) {
     this.deviceToken = opts.deviceToken;
     this.verbose = opts.verbose;
-    mkdirSync(STATE_DIR, { recursive: true });
+    mkdirSync(stateDir(), { recursive: true });
   }
 
   markSynced(watcher: string): void {

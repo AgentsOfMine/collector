@@ -4,20 +4,8 @@
 
 import { isPaired, getDeviceToken } from "../keychain/index.js";
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
-function stateDir(): string {
-  return process.env.HOME || process.env.USERPROFILE || homedir();
-}
-
-function deviceIdFile(): string {
-  return join(stateDir(), ".agentsofmine", "device-id");
-}
-
-function lastSyncFile(): string {
-  return join(stateDir(), ".agentsofmine", "last-sync.json");
-}
+import { deviceIdFile } from "../core/paths.js";
+import { readLastSync } from "../core/last-sync-store.js";
 
 export interface StatusJson {
   paired: boolean;
@@ -32,25 +20,11 @@ export interface StatusOptions {
 }
 
 function readDeviceId(): string | null {
-  if (!existsSync(deviceIdFile())) {
+  const file = deviceIdFile();
+  if (!existsSync(file)) {
     return null;
   }
-  return readFileSync(deviceIdFile(), "utf8").trim() || null;
-}
-
-function readLastSyncMap(): Record<string, string> {
-  if (!existsSync(lastSyncFile())) {
-    return {};
-  }
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(lastSyncFile(), "utf8"));
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      return parsed as Record<string, string>;
-    }
-  } catch {
-    return {};
-  }
-  return {};
+  return readFileSync(file, "utf8").trim() || null;
 }
 
 function newestSyncTimestamp(map: Record<string, string>): string | null {
@@ -65,7 +39,7 @@ function newestSyncTimestamp(map: Record<string, string>): string | null {
 
 export async function buildStatus(): Promise<StatusJson> {
   const paired = await isPaired();
-  const syncMap = readLastSyncMap();
+  const syncMap = readLastSync();
   return {
     paired,
     deviceId: readDeviceId(),
@@ -95,8 +69,8 @@ export async function runStatus(options: StatusOptions = {}): Promise<void> {
   }
 
   // Device ID
-  if (existsSync(deviceIdFile())) {
-    const deviceId = readFileSync(deviceIdFile(), "utf8").trim();
+  const deviceId = readDeviceId();
+  if (deviceId) {
     console.log(`  Device ID:     \x1b[2m${deviceId}\x1b[0m`);
   }
 
@@ -105,9 +79,8 @@ export async function runStatus(options: StatusOptions = {}): Promise<void> {
   console.log(`  Device token:  ${token ? "\x1b[32m✓ present in keychain\x1b[0m" : "\x1b[31m✗ missing\x1b[0m"}`);
 
   // Last sync timestamps per watcher
-  if (existsSync(lastSyncFile())) {
-    const raw = readFileSync(lastSyncFile(), "utf8");
-    const syncState = JSON.parse(raw) as Record<string, string>;
+  const syncState = readLastSync();
+  if (Object.keys(syncState).length > 0) {
     console.log("\n  Last synced:");
     for (const [watcher, ts] of Object.entries(syncState)) {
       const ago = formatAgo(new Date(ts));

@@ -17,8 +17,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { stateDir, configFile, deviceIdFile } from "../core/paths.js";
 
 export interface PairingConfig {
   deviceId: string;
@@ -37,10 +36,10 @@ export class ConfigRepository {
   private readonly configFile: string;
   private readonly deviceIdFile: string;
 
-  constructor(baseDir: string = join(homedir(), ".agentsofmine")) {
+  constructor(baseDir: string = stateDir()) {
     this.configDir = baseDir;
-    this.configFile = join(baseDir, "config.json");
-    this.deviceIdFile = join(baseDir, "device-id");
+    this.configFile = configFile(baseDir);
+    this.deviceIdFile = deviceIdFile(baseDir);
   }
 
   readDeviceId(): string | null {

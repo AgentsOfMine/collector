@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
+import { piSessionsDir } from "../../core/paths.js";
 import type { Adapter, Cursor, SyncItem } from "../adapter.js";
 import { scanJsonl } from "./jsonl-reader.js";
 import { createAccumulator, processEntry, finalizeSession } from "./mapper.js";
@@ -56,7 +56,7 @@ export class PiAdapter implements Adapter {
 
   private readonly sessionsDir: string;
 
-  constructor(sessionsDir: string = join(homedir(), ".pi", "agent", "sessions")) {
+  constructor(sessionsDir: string = piSessionsDir()) {
     this.sessionsDir = sessionsDir;
   }
 

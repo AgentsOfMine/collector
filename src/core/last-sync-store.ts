@@ -1,15 +1,11 @@
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
-const STATE_DIR = join(homedir(), ".agentsofmine");
-const LAST_SYNC_FILE = join(STATE_DIR, "last-sync.json");
+import { stateDir, lastSyncFile } from "./paths.js";
 
 export type LastSyncMap = Record<string, string>;
 
 export function readLastSync(): LastSyncMap {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(LAST_SYNC_FILE, "utf8"));
+    const parsed: unknown = JSON.parse(readFileSync(lastSyncFile(), "utf8"));
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
       return parsed as LastSyncMap;
     }
@@ -25,10 +21,11 @@ export function readLastSync(): LastSyncMap {
  * other's entries.
  */
 export function recordLastSync(source: string): void {
-  mkdirSync(STATE_DIR, { recursive: true });
+  mkdirSync(stateDir(), { recursive: true });
   const data = readLastSync();
   data[source] = new Date().toISOString();
-  const tmp = LAST_SYNC_FILE + ".tmp";
+  const file = lastSyncFile();
+  const tmp = file + ".tmp";
   writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
-  renameSync(tmp, LAST_SYNC_FILE);
+  renameSync(tmp, file);
 }

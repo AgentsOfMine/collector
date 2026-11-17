@@ -1,7 +1,7 @@
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { getDeviceToken } from "./keychain/index.js";
 import { ConfigRepository } from "./infrastructure/config-repository.js";
+import { COLLECTOR_VERSION } from "./core/version.js";
+import { opencodeDbPath, claudeProjectsGlob, codexSessionsDir, piSessionsDir } from "./core/paths.js";
 
 export interface Config {
   syncUrl: string;
@@ -13,8 +13,6 @@ export interface Config {
   codexSessionsDir: string;
   piSessionsDir: string;
 }
-
-const version = "0.1.1";
 
 // Shared singleton for internal use — callers that need richer access
 // should import ConfigRepository directly.
@@ -47,10 +45,10 @@ export async function loadConfig(
     syncUrl,
     deviceId,
     deviceToken,
-    collectorVersion: version,
-    opencodeDbPath: join(homedir(), ".local", "share", "opencode", "opencode.db"),
-    claudeProjectsGlob: join(homedir(), ".claude", "projects", "*", "*.jsonl"),
-    codexSessionsDir: join(homedir(), ".codex", "sessions"),
-    piSessionsDir: join(homedir(), ".pi", "agent", "sessions"),
+    collectorVersion: COLLECTOR_VERSION,
+    opencodeDbPath: opencodeDbPath(),
+    claudeProjectsGlob: claudeProjectsGlob(),
+    codexSessionsDir: codexSessionsDir(),
+    piSessionsDir: piSessionsDir(),
   };
 }

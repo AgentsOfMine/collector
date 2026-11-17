@@ -15,6 +15,7 @@
 
 import { isPaired, getDeviceToken } from "../keychain/index.js";
 import { loadConfig } from "../config.js";
+import { claudeProjectsDirFromGlob } from "../core/paths.js";
 import { startMcpServer } from "../mcp/server.js";
 import { OpenCodeWatcher } from "../watchers/opencode.js";
 import { DirectoryWatcher } from "../watchers/directory-watcher.js";
@@ -63,9 +64,7 @@ export async function runStart(opts: StartOptions = {}): Promise<void> {
   console.log("agentsofmine-collector starting…\n");
 
   const codexDir = config.codexSessionsDir;
-  const claudeProjectsDir = config.claudeProjectsGlob
-    .replace(/[/\\]\*[/\\]\*\.jsonl$/, "")
-    .replace(/[/\\]\*\.jsonl$/, "");
+  const claudeProjectsDir = claudeProjectsDirFromGlob(config.claudeProjectsGlob);
 
   const watchers: Watcher[] = [
     new OpenCodeWatcher(state, syncRunner, config.opencodeDbPath),

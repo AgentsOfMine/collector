@@ -1,11 +1,11 @@
 import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import type { Adapter, Cursor, SyncItem } from "../adapter.js";
 import { scanJsonl } from "./jsonl-reader.js";
 import { createAccumulator, processEvent, finalizeSession } from "./mapper.js";
 import { truncateMessages } from "../../core/message-truncation.js";
 import { debugLog } from "../../core/debug-log.js";
+import { claudeProjectsGlob, claudeProjectsDirFromGlob } from "../../core/paths.js";
 
 /**
  * Filesystem seam for discovering `.jsonl` session files. Injectable so file
@@ -80,12 +80,10 @@ export class ClaudeCodeAdapter implements Adapter {
   private readonly fs: FsReader;
 
   constructor(
-    projectsGlob: string = join(homedir(), ".claude", "projects", "*", "*.jsonl"),
+    projectsGlob: string = claudeProjectsGlob(),
     fs: FsReader = defaultFsReader,
   ) {
-    this.projectsDir = projectsGlob
-      .replace(/[/\\]\*[/\\]\*\.jsonl$/, "")
-      .replace(/[/\\]\*\.jsonl$/, "");
+    this.projectsDir = claudeProjectsDirFromGlob(projectsGlob);
     this.fs = fs;
   }
 

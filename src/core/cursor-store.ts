@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { dirname } from "node:path";
+import { stateDir, cursorsFile } from "./paths.js";
 
 export interface CursorStore {
   get(adapterName: string): string | null;
@@ -12,8 +12,8 @@ export class FileCursorStore implements CursorStore {
   private cache: Record<string, string> | null = null;
   private readonly cursorsFile: string;
 
-  constructor(baseDir: string = join(homedir(), ".agentsofmine")) {
-    this.cursorsFile = join(baseDir, "cursors.json");
+  constructor(baseDir: string = stateDir()) {
+    this.cursorsFile = cursorsFile(baseDir);
   }
 
   get(adapterName: string): string | null {
@@ -53,7 +53,7 @@ export class FileCursorStore implements CursorStore {
   }
 
   private saveToDisk(data: Record<string, string>): void {
-    mkdirSync(join(this.cursorsFile, ".."), { recursive: true });
+    mkdirSync(dirname(this.cursorsFile), { recursive: true });
     const tmp = this.cursorsFile + ".tmp";
     writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
     renameSync(tmp, this.cursorsFile);

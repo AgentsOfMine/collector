@@ -16,6 +16,7 @@
  */
 
 import { DaemonState } from "../daemon/state.js";
+import { COLLECTOR_VERSION } from "../core/version.js";
 import { parseRequest, writeResponse, writeError, RPC_ERRORS } from "./json-rpc.js";
 
 export interface SessionEventParams {
@@ -91,7 +92,7 @@ function handleInitialize(id: string | number | null | undefined): void {
   writeResponse(id, {
     protocolVersion: "2024-11-05",
     capabilities: { tools: {} },
-    serverInfo: { name: "agentsofmine-collector", version: "0.1.1" },
+    serverInfo: { name: "agentsofmine-collector", version: COLLECTOR_VERSION },
   });
 }
 

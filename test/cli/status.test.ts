@@ -11,23 +11,22 @@ vi.mock("../../src/keychain/index.js", () => ({
 import { isPaired } from "../../src/keychain/index.js";
 
 let tmpHome: string;
-let originalHome: string | undefined;
+
+// os.homedir() ignores process.env.HOME changes made inside a vitest worker, so
+// mock it the same way the other state-file tests do.
+vi.mock("node:os", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:os")>();
+  return { ...actual, homedir: () => tmpHome };
+});
 
 beforeEach(() => {
   tmpHome = mkdtempSync(join(tmpdir(), "aom-status-"));
-  originalHome = process.env.HOME;
-  process.env.HOME = tmpHome;
   mkdirSync(join(tmpHome, ".agentsofmine"), { recursive: true });
   vi.resetModules();
   vi.mocked(isPaired).mockReset();
 });
 
 afterEach(() => {
-  if (originalHome === undefined) {
-    delete process.env.HOME;
-  } else {
-    process.env.HOME = originalHome;
-  }
   rmSync(tmpHome, { recursive: true, force: true });
 });
 

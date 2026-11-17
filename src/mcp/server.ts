@@ -15,6 +15,7 @@
  *   args    = ["start"]
  */
 
+import type { Readable } from "node:stream";
 import { DaemonState } from "../daemon/state.js";
 import { COLLECTOR_VERSION } from "../core/version.js";
 import { parseRequest, writeResponse, writeError, RPC_ERRORS } from "./json-rpc.js";
@@ -27,6 +28,11 @@ export interface SessionEventParams {
   timestamp?: string;
 }
 
+/** Returned by `startMcpServer`; releases stdin so the process can exit. */
+export interface McpServerHandle {
+  stop(): void;
+}
+
 /**
  * Start the MCP server on stdio.
  *
@@ -34,12 +40,15 @@ export interface SessionEventParams {
  * this stub once the session-event schema is finalised with the backend team.
  * For now we read JSON-RPC lines from stdin and ack them so agents don't block.
  */
-export async function startMcpServer(state: DaemonState): Promise<void> {
-  process.stdin.setEncoding("utf8");
+export async function startMcpServer(
+  state: DaemonState,
+  input: Readable = process.stdin,
+): Promise<McpServerHandle> {
+  input.setEncoding("utf8");
 
   let buffer = "";
 
-  process.stdin.on("data", (chunk: string) => {
+  const onData = (chunk: string): void => {
     buffer += chunk;
     const lines = buffer.split("\n");
     // Keep the last (possibly incomplete) line in the buffer
@@ -50,9 +59,17 @@ export async function startMcpServer(state: DaemonState): Promise<void> {
       if (!trimmed) continue;
       dispatch(trimmed, state);
     }
-  });
+  };
+  input.on("data", onData);
 
-  // stdio MCP is fire-and-forget from the server side — no explicit listen() needed
+  // stdio MCP is fire-and-forget from the server side — no explicit listen() needed.
+  return {
+    stop: () => {
+      // A flowing stdin keeps the process alive, so stopping must release it.
+      input.removeListener("data", onData);
+      input.pause();
+    },
+  };
 }
 
 

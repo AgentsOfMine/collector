@@ -15,12 +15,14 @@
 
 import { isPaired, getDeviceToken } from "../keychain/index.js";
 import { loadConfig } from "../config.js";
-import { claudeProjectsDirFromGlob } from "../core/paths.js";
-import { startMcpServer } from "../mcp/server.js";
+import { startMcpServer, type McpServerHandle } from "../mcp/server.js";
 import { OpenCodeWatcher } from "../watchers/opencode.js";
 import { DirectoryWatcher } from "../watchers/directory-watcher.js";
 import { DaemonState } from "../daemon/state.js";
 import { SyncRunner } from "../daemon/sync-runner.js";
+import { claudeProjectsDirFromGlob } from "../core/paths.js";
+import { EXIT_FAILURE, EXIT_OK, type Terminal } from "./terminal.js";
+import { printNotPaired, printTokenMissing } from "./messages.js";
 
 export interface StartOptions {
   /** Override MCP server port (default: stdio). */
@@ -29,80 +31,112 @@ export interface StartOptions {
   verbose?: boolean;
 }
 
-interface Watcher {
+export interface Watcher {
   readonly name: string;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
 
-export async function runStart(opts: StartOptions = {}): Promise<void> {
-  if (!(await isPaired())) {
-    console.error("✗ This machine is not paired yet.");
-    console.error("  Run \x1b[36maom pair\x1b[0m first.");
-    process.exit(1);
-  }
-
-  const deviceToken = await getDeviceToken();
-  if (!deviceToken) {
-    console.error("✗ Device token missing — run \x1b[36maom pair\x1b[0m again.");
-    process.exit(1);
-  }
-
-  const config = await loadConfig();
-  const state = new DaemonState({ deviceToken, verbose: opts.verbose ?? false });
-
-  const syncRunner = new SyncRunner({
-    log: (msg) => state.log(msg),
-    onSynced: (summary) => {
-      if (summary.synced > 0 || summary.failed > 0) {
-        state.markSynced("daemon");
-      }
-    },
-  });
-  state.syncRunner = syncRunner;
-
-  console.log("agentsofmine-collector starting…\n");
-
-  const codexDir = config.codexSessionsDir;
-  const claudeProjectsDir = claudeProjectsDirFromGlob(config.claudeProjectsGlob);
-
-  const watchers: Watcher[] = [
-    new OpenCodeWatcher(state, syncRunner, config.opencodeDbPath),
-    new DirectoryWatcher("claude-code", claudeProjectsDir, state, syncRunner, (f) =>
-      f.endsWith(".jsonl"),
-    ),
-    new DirectoryWatcher("codex", codexDir, state, syncRunner),
-    new DirectoryWatcher("pi", config.piSessionsDir, state, syncRunner, (f) =>
-      f.endsWith(".jsonl"),
-    ),
-  ];
-
-  for (const w of watchers) {
-    await w.start();
-    console.log(`  ✓ ${w.name} watcher active`);
-  }
-
-  await startMcpServer(state);
-  console.log("  ✓ MCP server listening (stdio)");
-
-  console.log("\nRunning initial sync…");
-  await syncRunner.runNow();
-
-  console.log("\nCollector is running. Watching for changes. Press Ctrl+C to stop.\n");
-
-  setupSignalHandlers(watchers, syncRunner);
+/** What `runStart` needs from the outside world; replaceable in tests. */
+export interface StartDeps {
+  isPaired: () => Promise<boolean>;
+  getDeviceToken: () => Promise<string | null>;
+  /** Build the watchers for this run. */
+  createWatchers: (state: DaemonState, runner: SyncRunner, config: Awaited<ReturnType<typeof loadConfig>>) => Watcher[];
+  startMcpServer: (state: DaemonState) => Promise<McpServerHandle>;
+  createRunner: (state: DaemonState) => SyncRunner;
+  /** Resolves when the process is asked to stop (Ctrl+C / SIGTERM). */
+  untilStopped: () => Promise<void>;
+  loadConfig: typeof loadConfig;
+  createState: (opts: { deviceToken: string; verbose: boolean }) => DaemonState;
 }
 
-function setupSignalHandlers(watchers: Watcher[], syncRunner: SyncRunner): void {
-  const shutdown = async () => {
-    console.log("\nShutting down…");
-    syncRunner.stop();
-    for (const w of watchers) {
-      await w.stop();
-    }
-    process.exit(0);
-  };
+export function defaultWatchers(
+  state: DaemonState,
+  runner: SyncRunner,
+  config: Awaited<ReturnType<typeof loadConfig>>,
+): Watcher[] {
+  const jsonl = (f: string): boolean => f.endsWith(".jsonl");
+  return [
+    new OpenCodeWatcher(state, runner, config.opencodeDbPath),
+    new DirectoryWatcher("claude-code", claudeProjectsDirFromGlob(config.claudeProjectsGlob), state, runner, jsonl),
+    new DirectoryWatcher("codex", config.codexSessionsDir, state, runner),
+    new DirectoryWatcher("pi", config.piSessionsDir, state, runner, jsonl),
+  ];
+}
 
-  process.on("SIGINT", () => void shutdown());
-  process.on("SIGTERM", () => void shutdown());
+/** Resolves on the first SIGINT or SIGTERM. */
+export function untilSignal(): Promise<void> {
+  return new Promise((resolve) => {
+    const done = (): void => resolve();
+    process.once("SIGINT", done);
+    process.once("SIGTERM", done);
+  });
+}
+
+const realDeps: StartDeps = {
+  isPaired,
+  getDeviceToken,
+  createWatchers: defaultWatchers,
+  startMcpServer,
+  createRunner: (state) =>
+    new SyncRunner({
+      log: (msg) => state.log(msg),
+      onSynced: (summary) => {
+        if (summary.synced > 0 || summary.failed > 0) state.markSynced("daemon");
+      },
+    }),
+  untilStopped: untilSignal,
+  loadConfig,
+  createState: (opts) => new DaemonState(opts),
+};
+
+/**
+ * Run the daemon until it is asked to stop, then shut it down cleanly and
+ * return the exit code. Does not call `process.exit`: the caller owns that.
+ */
+export async function runStart(
+  term: Terminal,
+  opts: StartOptions = {},
+  deps: StartDeps = realDeps,
+): Promise<number> {
+  if (!(await deps.isPaired())) {
+    printNotPaired(term);
+    return EXIT_FAILURE;
+  }
+
+  const deviceToken = await deps.getDeviceToken();
+  if (!deviceToken) {
+    printTokenMissing(term);
+    return EXIT_FAILURE;
+  }
+
+  const config = await deps.loadConfig();
+  const state = deps.createState({ deviceToken, verbose: opts.verbose ?? false });
+  const syncRunner = deps.createRunner(state);
+  state.syncRunner = syncRunner;
+
+  term.out("agentsofmine-collector starting…\n");
+
+  const watchers = deps.createWatchers(state, syncRunner, config);
+  for (const w of watchers) {
+    await w.start();
+    term.out(`  ${term.paint.green("✓")} ${w.name} watcher active`);
+  }
+
+  const mcp = await deps.startMcpServer(state);
+  term.out(`  ${term.paint.green("✓")} MCP server listening (stdio)`);
+
+  term.out("\nRunning initial sync…");
+  await syncRunner.runNow();
+
+  term.out("\nCollector is running. Watching for changes. Press Ctrl+C to stop.\n");
+
+  await deps.untilStopped();
+
+  term.out("\nShutting down…");
+  syncRunner.stop();
+  for (const w of watchers) await w.stop();
+  mcp.stop();
+  return EXIT_OK;
 }

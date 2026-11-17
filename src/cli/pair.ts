@@ -1,8 +1,8 @@
 /**
  * `aom pair` — one-time device pairing.
  *
- * Presentation layer only: QR rendering, spinner, terminal output, error
- * messages, process.exit() calls.
+ * Presentation layer only: QR rendering, spinner, terminal output and error
+ * messages. It returns an exit code; it never calls process.exit().
  *
  * All orchestration (init → poll → token storage → config write) lives in
  * PairingService. All file I/O lives in ConfigRepository.
@@ -21,9 +21,9 @@ import qrcode from "qrcode-terminal";
 import openBrowser from "open";
 import { PairingClient, PairingApiError } from "../api/pairing-client.js";
 import { ConfigRepository } from "../infrastructure/config-repository.js";
-import { PairingService } from "../services/pairing-service.js";
+import { PairingService, type PairFlowOptions, type PairFlowResult } from "../services/pairing-service.js";
 import { isPaired } from "../keychain/index.js";
-
+import { EXIT_FAILURE, EXIT_OK, type Terminal } from "./terminal.js";
 
 export interface PairOptions {
   /** Skip auto-opening the browser. Defaults to false. */
@@ -34,105 +34,135 @@ export interface PairOptions {
   force?: boolean;
 }
 
-export async function runPair(opts: PairOptions = {}): Promise<void> {
-  // Guard: already paired
-  if (!opts.force && (await isPaired())) {
-    console.log("✓ This machine is already paired.");
-    console.log("  Run \x1b[36maom status\x1b[0m to see sync state.");
-    console.log("  Use \x1b[36maom pair --force\x1b[0m to re-pair.");
-    return;
-  }
+export interface PairDeps {
+  isPaired: () => Promise<boolean>;
+  runPairFlow: (flow: PairFlowOptions, apiBaseUrl: string | undefined) => Promise<PairFlowResult>;
+  openBrowser: (url: string) => Promise<unknown>;
+  /** Render a QR code for `url` as lines of text. */
+  renderQr: (url: string) => string;
+}
 
-  const client = new PairingClient(opts.apiBaseUrl);
-  const configRepo = new ConfigRepository();
-  const service = new PairingService(client, configRepo);
-
-  process.stdout.write("Requesting pairing code… ");
-
-  let result: Awaited<ReturnType<typeof service.runPairFlow>>;
-  try {
-    result = await service.runPairFlow({
-      reset: opts.force ?? false,
-
-      onInitSuccess: ({ pairingCode, qrUrl, expiresInMinutes, pollIntervalMs: _unused }) => {
-        void _unused;
-        console.log("done\n");
-        printPairingUI(qrUrl, pairingCode, expiresInMinutes);
-
-        if (!opts.noBrowser) {
-          openBrowser(qrUrl).catch(() => {
-            // Non-fatal: browser open is best-effort
-          });
-        }
-
-        console.log("Waiting for approval on your phone…\n");
-      },
-
-      onPollTick: (tick) => {
-        const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-        const frame = spinnerFrames[tick % spinnerFrames.length] ?? "·";
-        process.stdout.write(`\r${frame} Waiting…`);
-      },
+const realDeps: PairDeps = {
+  isPaired,
+  runPairFlow: (flow, apiBaseUrl) =>
+    new PairingService(new PairingClient(apiBaseUrl), new ConfigRepository()).runPairFlow(flow),
+  openBrowser: (url) => openBrowser(url),
+  renderQr: (url) => {
+    let out = "";
+    qrcode.generate(url, { small: true }, (code: string) => {
+      out = code;
     });
-  } catch (err) {
-    process.stdout.write("\n");
-    handleApiError(err);
-    return;
+    return out;
+  },
+};
+
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+export async function runPair(
+  term: Terminal,
+  opts: PairOptions = {},
+  deps: PairDeps = realDeps,
+): Promise<number> {
+  const { paint } = term;
+
+  if (!opts.force && (await deps.isPaired())) {
+    term.out("✓ This machine is already paired.");
+    term.out(`  Run ${paint.cyan("aom status")} to see sync state.`);
+    term.out(`  Use ${paint.cyan("aom pair --force")} to re-pair.`);
+    return EXIT_OK;
   }
 
-  process.stdout.write("\n\n");
+  term.write("Requesting pairing code… ");
+
+  let result: PairFlowResult;
+  try {
+    result = await deps.runPairFlow(
+      {
+        reset: opts.force ?? false,
+
+        onInitSuccess: ({ pairingCode, qrUrl, expiresInMinutes }) => {
+          term.out("done\n");
+          printPairingUi(term, deps.renderQr(qrUrl), qrUrl, pairingCode, expiresInMinutes);
+
+          if (!opts.noBrowser) {
+            // Best-effort: failing to open a browser is not a pairing failure.
+            deps.openBrowser(qrUrl).catch(() => {});
+          }
+
+          term.out("Waiting for approval on your phone…\n");
+        },
+
+        onPollTick: (tick) => {
+          const frame = SPINNER_FRAMES[tick % SPINNER_FRAMES.length] ?? "·";
+          term.write(`\r${frame} Waiting…`);
+        },
+      },
+      opts.apiBaseUrl,
+    );
+  } catch (err) {
+    term.write("\n");
+    printApiError(term, err);
+    return EXIT_FAILURE;
+  }
+
+  term.write("\n\n");
 
   switch (result.status) {
     case "approved":
-      console.log("✓ \x1b[32mPaired!\x1b[0m Device token stored in keychain.");
-      console.log("  Run \x1b[36maom start\x1b[0m to begin syncing sessions.");
-      return;
+      term.out(`✓ ${paint.green("Paired!")} Device token stored in keychain.`);
+      term.out(`  Run ${paint.cyan("aom start")} to begin syncing sessions.`);
+      return EXIT_OK;
 
     case "denied":
-      console.error("✗ Pairing was denied on your phone.");
-      console.error("  Run \x1b[36maom pair\x1b[0m again to start a new pairing.");
-      process.exit(1);
-      break;
+      term.err("✗ Pairing was denied on your phone.");
+      term.err(`  Run ${paint.cyan("aom pair")} again to start a new pairing.`);
+      return EXIT_FAILURE;
 
     case "expired":
-      console.error("✗ Pairing code expired (5 minutes).");
-      console.error("  Run \x1b[36maom pair\x1b[0m again to get a fresh code.");
-      process.exit(1);
-      break;
+      term.err("✗ Pairing code expired (5 minutes).");
+      term.err(`  Run ${paint.cyan("aom pair")} again to get a fresh code.`);
+      return EXIT_FAILURE;
   }
 }
 
+const RULE = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
 
-function printPairingUI(qrUrl: string, pairingCode: string, expiresInMinutes: number): void {
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  AgentsOfMine — Pair this machine");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+function printPairingUi(
+  term: Terminal,
+  qr: string,
+  qrUrl: string,
+  pairingCode: string,
+  expiresInMinutes: number,
+): void {
+  const { paint } = term;
+  term.out(RULE);
+  term.out("  AgentsOfMine — Pair this machine");
+  term.out(`${RULE}\n`);
 
-  qrcode.generate(qrUrl, { small: true });
+  if (qr) term.out(qr);
 
-  console.log(`\n  \x1b[1mPairing code:\x1b[0m  \x1b[36m${pairingCode}\x1b[0m`);
-  console.log(`  \x1b[2mExpires in ~${expiresInMinutes} minutes\x1b[0m\n`);
-  console.log("  Or open this URL on your phone:");
-  console.log(`  \x1b[4m${qrUrl}\x1b[0m\n`);
-  console.log("  \x1b[33mOnly approve if you just ran this command.\x1b[0m");
-  console.log("  \x1b[33mVerify the pairing code matches what your phone shows.\x1b[0m\n");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+  term.out(`\n  ${paint.bold("Pairing code:")}  ${paint.cyan(pairingCode)}`);
+  term.out(`  ${paint.dim(`Expires in ~${expiresInMinutes} minutes`)}\n`);
+  term.out("  Or open this URL on your phone:");
+  term.out(`  ${paint.underline(qrUrl)}\n`);
+  term.out(`  ${paint.yellow("Only approve if you just ran this command.")}`);
+  term.out(`  ${paint.yellow("Verify the pairing code matches what your phone shows.")}\n`);
+  term.out(`${RULE}\n`);
 }
 
-
-function handleApiError(err: unknown): never {
+function printApiError(term: Terminal, err: unknown): void {
   if (err instanceof PairingApiError) {
-    console.error(`\n✗ Pairing API returned HTTP ${err.statusCode}`);
+    term.err(`\n✗ Pairing API returned HTTP ${err.statusCode}`);
     if (err.statusCode === 429) {
-      console.error("  Too many requests — wait a moment and try again.");
+      term.err("  Too many requests — wait a moment and try again.");
     } else if (err.statusCode >= 500) {
-      console.error("  Server error — please try again in a few seconds.");
+      term.err("  Server error — please try again in a few seconds.");
     } else {
-      console.error(`  ${err.body}`);
+      term.err(`  ${err.body}`);
     }
-  } else {
-    console.error(`\n✗ Network error during pairing:`, (err as Error).message);
-    console.error("  Check your internet connection and try again.");
+    return;
   }
-  process.exit(1);
+  const message = err instanceof Error ? err.message : String(err);
+  term.err(`\n✗ Network error during pairing: ${message}`);
+  term.err("  Check your internet connection and try again.");
 }

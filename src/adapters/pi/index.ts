@@ -1,33 +1,8 @@
-import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
+import { existsSync, readdirSync, type Dirent } from "node:fs";
 import { join } from "node:path";
 import { piSessionsDir } from "../../core/paths.js";
-import type { Adapter, Cursor, SyncItem } from "../adapter.js";
-import { scanJsonl } from "./jsonl-reader.js";
+import { OffsetCursorAdapter, type SessionFileReader } from "../offset-cursor-adapter.js";
 import { createAccumulator, processEntry, finalizeSession } from "./mapper.js";
-import { truncateMessages } from "../../core/message-truncation.js";
-
-interface PiCursor {
-  [filePath: string]: number;
-}
-
-function parseCursor(raw: string | null): PiCursor {
-  if (!raw) return {};
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === "object" && parsed !== null) return parsed as PiCursor;
-  } catch {
-    // ignore — malformed cursor, start fresh
-  }
-  return {};
-}
-
-function sizeOf(filePath: string): number {
-  try {
-    return statSync(filePath).size;
-  } catch {
-    return -1;
-  }
-}
 
 function findJsonlFiles(rootDir: string): string[] {
   const files: string[] = [];
@@ -51,38 +26,27 @@ function findJsonlFiles(rootDir: string): string[] {
   return files;
 }
 
-export class PiAdapter implements Adapter {
+export class PiAdapter extends OffsetCursorAdapter {
   readonly name = "pi";
 
   private readonly sessionsDir: string;
 
   constructor(sessionsDir: string = piSessionsDir()) {
+    super();
     this.sessionsDir = sessionsDir;
   }
 
-  async *listNewSessions(cursor: Cursor): AsyncIterable<SyncItem> {
-    const offsets = parseCursor(cursor.value);
-    const files = findJsonlFiles(this.sessionsDir);
+  protected findSessionFiles(): string[] {
+    return findJsonlFiles(this.sessionsDir);
+  }
 
-    for (const filePath of files) {
-      if (!existsSync(filePath)) continue;
-      const fromOffset = offsets[filePath] ?? 0;
-      if (fromOffset > 0 && sizeOf(filePath) === fromOffset) continue; // nothing appended since last pass
-      const acc = createAccumulator(filePath);
-
-      let scan;
-      try {
-        scan = await scanJsonl(filePath, fromOffset, (line) => processEntry(acc, line), () => acc.messages.length);
-      } catch {
-        continue;
-      }
-
-      const newMessages = acc.messages.slice(scan.newMessagesFrom);
-      if (newMessages.length === 0) continue;
-
-      offsets[filePath] = scan.endOffset;
-      const session = finalizeSession(acc);
-      yield { session: { ...session, messages: truncateMessages(newMessages) }, cursor: JSON.stringify(offsets) };
-    }
+  protected openReader(filePath: string): SessionFileReader {
+    const acc = createAccumulator(filePath);
+    return {
+      apply: (line) => processEntry(acc, line),
+      messageCount: () => acc.messages.length,
+      messages: () => acc.messages,
+      finalize: () => finalizeSession(acc),
+    };
   }
 }

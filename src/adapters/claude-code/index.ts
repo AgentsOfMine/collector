@@ -1,10 +1,7 @@
-import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
+import { existsSync, readdirSync, type Dirent } from "node:fs";
 import { join } from "node:path";
-import type { Adapter, Cursor, SyncItem } from "../adapter.js";
-import { scanJsonl } from "./jsonl-reader.js";
+import { OffsetCursorAdapter, type SessionFileReader } from "../offset-cursor-adapter.js";
 import { createAccumulator, processEvent, finalizeSession } from "./mapper.js";
-import { truncateMessages } from "../../core/message-truncation.js";
-import { debugLog } from "../../core/debug-log.js";
 import { claudeProjectsGlob, claudeProjectsDirFromGlob } from "../../core/paths.js";
 
 /**
@@ -22,29 +19,6 @@ const defaultFsReader: FsReader = {
   existsSync,
   readdirSync: (path) => readdirSync(path, { withFileTypes: true }),
 };
-
-interface ClaudeCodeCursor {
-  [filePath: string]: number;
-}
-
-function parseCursor(raw: string | null): ClaudeCodeCursor {
-  if (!raw) return {};
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === "object" && parsed !== null) return parsed as ClaudeCodeCursor;
-  } catch {
-    // ignore
-  }
-  return {};
-}
-
-function sizeOf(filePath: string): number {
-  try {
-    return statSync(filePath).size;
-  } catch {
-    return -1;
-  }
-}
 
 function findJsonlFiles(projectsDir: string, fs: FsReader): string[] {
   const files: string[] = [];
@@ -73,7 +47,7 @@ function findJsonlFiles(projectsDir: string, fs: FsReader): string[] {
   return files;
 }
 
-export class ClaudeCodeAdapter implements Adapter {
+export class ClaudeCodeAdapter extends OffsetCursorAdapter {
   readonly name = "claude-code";
 
   private readonly projectsDir: string;
@@ -83,37 +57,26 @@ export class ClaudeCodeAdapter implements Adapter {
     projectsGlob: string = claudeProjectsGlob(),
     fs: FsReader = defaultFsReader,
   ) {
+    super();
     this.projectsDir = claudeProjectsDirFromGlob(projectsGlob);
     this.fs = fs;
   }
 
-  async *listNewSessions(cursor: Cursor): AsyncIterable<SyncItem> {
-    const offsets = parseCursor(cursor.value);
-    const files = findJsonlFiles(this.projectsDir, this.fs);
+  protected findSessionFiles(): string[] {
+    return findJsonlFiles(this.projectsDir, this.fs);
+  }
 
-    for (const filePath of files) {
-      if (!this.fs.existsSync(filePath)) continue;
-      const fromOffset = offsets[filePath] ?? 0;
-      if (fromOffset > 0 && sizeOf(filePath) === fromOffset) continue; // nothing appended since last pass
-      const acc = createAccumulator(filePath);
+  protected override fileExists(filePath: string): boolean {
+    return this.fs.existsSync(filePath);
+  }
 
-      let scan;
-      try {
-        scan = await scanJsonl(filePath, fromOffset, (line) => processEvent(acc, line), () => acc.messages.length);
-      } catch (err) {
-        debugLog(`claude-code: failed reading ${filePath}`, err);
-        continue;
-      }
-
-      // The accumulator saw the whole file, so the session fields are the
-      // session's real ones; only messages from the unsynced tail are sent.
-      const newMessages = acc.messages.slice(scan.newMessagesFrom);
-      if (newMessages.length === 0) continue;
-
-      offsets[filePath] = scan.endOffset;
-      const session = finalizeSession(acc);
-      yield { session: { ...session, messages: truncateMessages(newMessages) }, cursor: JSON.stringify(offsets) };
-    }
+  protected openReader(filePath: string): SessionFileReader {
+    const acc = createAccumulator(filePath);
+    return {
+      apply: (line) => processEvent(acc, line),
+      messageCount: () => acc.messages.length,
+      messages: () => acc.messages,
+      finalize: () => finalizeSession(acc),
+    };
   }
 }
-

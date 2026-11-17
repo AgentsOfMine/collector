@@ -245,8 +245,19 @@ Each provider has its own adapter that knows the local session format.
 - **We never log into your AI accounts.** No Claude, OpenAI, Copilot, or any other AI provider credentials anywhere in this package.
 - The collector reads files your agents have already written to local disk.
 - The device token is stored in your OS keychain (macOS Keychain, Windows Credential Manager, Linux libsecret/kwallet). Note: after pairing, a copy of the device token is also written to `~/.agentsofmine/config.json` with owner-only permissions (`0600`).
+- **Secrets are redacted on your machine before upload** (best-effort, see below).
 - All traffic to `agentsofmine.io` is TLS 1.2+. Data at rest is encrypted with AWS KMS.
 - This package is MIT-licensed. Read every line that runs on your machine.
+
+### Secret redaction
+
+Every session passes through [`src/core/redact.ts`](src/core/redact.ts) just before it is sent (CLI `aom sync`, the daemon, and the MCP `sync_now` tool all share the same path). It rewrites matches in message text, reasoning, tool input and output, the session title and changed-file paths to a marker such as `<REDACTED:github-token>`.
+
+It recognises: AWS access key ids (`AKIA…`) and AWS secret keys next to their name; GitHub tokens (`ghp_`, `github_pat_`, …); `sk-…` API keys (OpenAI, Anthropic); Slack tokens; JWTs; `Bearer` tokens; PEM / OpenSSH private-key blocks (including truncated ones); passwords inside connection-string URLs; and `UPPER_CASE_NAME=value` assignments whose name contains `PASSWORD`, `SECRET`, `TOKEN`, `API_KEY`, `PRIVATE_KEY` or `ACCESS_KEY`. In tool-call JSON, string values under keys like `password` or `api_key` are redacted whatever they look like.
+
+**This is best-effort, not a guarantee.** A regex cannot recognise a secret it has no pattern for (a bare random password, an unprefixed API key, a secret split across messages), and it can occasionally redact something harmless. It also does not touch sessions synced before it existed. Treat it as defense in depth on top of encryption, not as permission to paste credentials into an agent.
+
+Set `AOM_NO_REDACT=1` to disable it for debugging; the collector prints a warning to stderr when you do.
 
 ---
 
@@ -259,6 +270,7 @@ The implementation lives in [`src/`](src/):
 - **Session normalization schema** (`CanonicalSession` + `CanonicalMessage`) — [`src/core/canonical.ts`](src/core/canonical.ts)
 - **Project identity resolution** (Git remote normalization, multi-device dedup) — [`src/core/project-identity.ts`](src/core/project-identity.ts), [`src/core/git-identity.ts`](src/core/git-identity.ts)
 - **Sync engine and retry handling** — [`src/core/sync-engine.ts`](src/core/sync-engine.ts), [`src/core/http-client.ts`](src/core/http-client.ts)
+- **Secret redaction** — [`src/core/redact.ts`](src/core/redact.ts)
 - **Device token lifecycle** (pairing → keychain storage) — [`src/services/pairing-service.ts`](src/services/pairing-service.ts), [`src/keychain/`](src/keychain/)
 - **File watchers** — [`src/watchers/`](src/watchers/) (monitors session directories for `aom start`)
 - **Shared utilities** — [`src/core/message-truncation.ts`](src/core/message-truncation.ts), [`src/core/safe-json.ts`](src/core/safe-json.ts)

@@ -2,6 +2,7 @@ import type { SessionWithMessages } from "./canonical.js";
 import type { Adapter } from "../adapters/adapter.js";
 import type { CursorStore } from "./cursor-store.js";
 import { post } from "./http-client.js";
+import { redactSession } from "./redact.js";
 
 export interface SyncConfig {
   syncUrl: string;
@@ -25,6 +26,14 @@ export async function runSync(
 ): Promise<SyncSummary> {
   const batchSize = config.batchSize ?? 5;
 
+  // Every session is redacted here, the single choke point all uploads share
+  // (CLI sync, daemon, MCP `sync_now`). AOM_NO_REDACT=1 is a debugging escape
+  // hatch; it is loud on purpose.
+  const redact = process.env["AOM_NO_REDACT"] !== "1";
+  if (!redact) {
+    console.error("[aom] WARNING: AOM_NO_REDACT=1 — secrets are NOT being removed before upload.");
+  }
+
   let synced = 0;
   let failed = 0;
   const errors: string[] = [];
@@ -43,7 +52,7 @@ export async function runSync(
           deviceId: config.deviceId,
           collectorVersion: config.collectorVersion,
           sentAt: new Date().toISOString(),
-          sessions: [...batch],
+          sessions: redact ? batch.map(redactSession) : [...batch],
         };
         const response = await httpPost(config.syncUrl, body, config.deviceToken);
         synced += response.accepted.length;

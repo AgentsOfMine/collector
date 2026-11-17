@@ -169,3 +169,70 @@ describe("runSync — error resilience", () => {
     expect(b.sessions).toHaveLength(1);
   });
 });
+
+describe("runSync — redaction before upload", () => {
+  const KEY = ["AKIA", "IOSFODNN7EXAMPLE"].join("");
+  const TOKEN = ["ghp_", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"].join("");
+
+  function secretSession(): SessionWithMessages {
+    return {
+      ...makeSession("secret-1"),
+      title: `debug ${KEY}`,
+      messages: [
+        {
+          messageId: "m1",
+          sessionId: "secret-1",
+          role: "assistant",
+          createdAt: "2026-06-03T10:00:01Z",
+          parts: [
+            { type: "text", text: `use ${TOKEN}` },
+            { type: "tool", tool: "bash", callId: "c1", input: { command: `export K=${KEY}` }, output: `ok ${TOKEN}` },
+          ],
+        },
+      ],
+    };
+  }
+
+  it("never puts a recognisable secret in the HTTP body", async () => {
+    const post = makeSuccessPost(["secret-1"]);
+    await runSync([makeAdapter("opencode", [secretSession()])], BASE_CONFIG, makeCursorStore(), post);
+
+    expect(post).toHaveBeenCalledOnce();
+    const body = JSON.stringify(post.mock.calls[0]![1]);
+    expect(body).not.toContain(KEY);
+    expect(body).not.toContain(TOKEN);
+    expect(body).toContain("<REDACTED:");
+  });
+
+  it("does not mutate the adapter's own session objects", async () => {
+    const original = secretSession();
+    const before = JSON.stringify(original);
+    await runSync([makeAdapter("opencode", [original])], BASE_CONFIG, makeCursorStore(), makeSuccessPost(["secret-1"]));
+    expect(JSON.stringify(original)).toBe(before);
+  });
+
+  it("still sends the session id, timestamps and structure", async () => {
+    const post = makeSuccessPost(["secret-1"]);
+    await runSync([makeAdapter("opencode", [secretSession()])], BASE_CONFIG, makeCursorStore(), post);
+    const sent = post.mock.calls[0]![1].sessions[0];
+    expect(sent.sessionId).toBe("secret-1");
+    expect(sent.startedAt).toBe("2026-06-03T10:00:00Z");
+    expect(sent.messages[0].parts).toHaveLength(2);
+  });
+
+  it("can be switched off for debugging with AOM_NO_REDACT, and says so on stderr", async () => {
+    const prev = process.env["AOM_NO_REDACT"];
+    process.env["AOM_NO_REDACT"] = "1";
+    const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const post = makeSuccessPost(["secret-1"]);
+      await runSync([makeAdapter("opencode", [secretSession()])], BASE_CONFIG, makeCursorStore(), post);
+      expect(JSON.stringify(post.mock.calls[0]![1])).toContain(KEY);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+      if (prev === undefined) delete process.env["AOM_NO_REDACT"];
+      else process.env["AOM_NO_REDACT"] = prev;
+    }
+  });
+});

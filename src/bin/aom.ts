@@ -61,7 +61,7 @@ program
 
 program
   .command("start")
-  .description("Start the collector daemon (file watchers + MCP server)")
+  .description("Start the collector daemon (watches your agents' session files and syncs changes)")
   .option("-v, --verbose", "Enable verbose logging")
   .option("--mcp-port <port>", "MCP server port (default: stdio)", parseInt)
   .action(async (opts: { verbose: boolean; mcpPort?: number }) => {

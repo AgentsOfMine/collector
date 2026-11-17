@@ -1,14 +1,33 @@
 {
-  "name": "agentsofmine-collector",
+  "name": "agentsofmine",
   "version": "0.1.0",
   "description": "Local MCP server that reads AI coding agent sessions and syncs to AgentsOfMine backend",
+  "license": "MIT",
+  "homepage": "https://agentsofmine.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgentsOfMine/collector.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AgentsOfMine/collector/issues"
+  },
+  "keywords": [
+    "ai-coding",
+    "claude-code",
+    "opencode",
+    "codex",
+    "mcp",
+    "session-sync",
+    "cli"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "aom": "./dist/bin/aom.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "engines": {
     "node": ">=20"
@@ -20,10 +39,11 @@
     "lint": "eslint src test",
     "typecheck": "tsc --noEmit",
     "check": "npm run build && npm run lint && npm test",
-    "prepare": "tsc"
+    "prepare": "tsc",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "latest",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "better-sqlite3": "^12.0.0",
     "commander": "^15.0.0",
     "keytar": "^7.9.0",

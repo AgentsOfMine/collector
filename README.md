@@ -40,7 +40,7 @@ Works with any editor or terminal — Claude Code CLI, OpenCode CLI, Cursor, Zed
 The fastest path on every platform is a global npm install:
 
 ```bash
-npm install -g agentsofmine-collector
+npm install -g agentsofmine
 ```
 
 Verify the install:
@@ -52,7 +52,7 @@ aom --version
 Or run it once without installing:
 
 ```bash
-npx agentsofmine-collector pair
+npx agentsofmine pair
 ```
 
 ### macOS
@@ -71,7 +71,7 @@ npx agentsofmine-collector pair
 3. **Install and pair:**
 
    ```bash
-   npm install -g agentsofmine-collector
+   npm install -g agentsofmine
    aom pair
    aom start
    ```
@@ -118,7 +118,7 @@ npx agentsofmine-collector pair
 3. **Install and pair:**
 
    ```bash
-   npm install -g agentsofmine-collector
+   npm install -g agentsofmine
    aom pair
    aom start
    ```

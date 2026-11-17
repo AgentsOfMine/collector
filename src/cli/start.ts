@@ -5,8 +5,6 @@
  *  1. A shared SyncRunner (debounced, single-flight) that uploads new sessions.
  *  2. File watchers for each supported agent (OpenCode DB, Claude Code and
  *     Codex session directories). Each watcher triggers the SyncRunner.
- *  3. The MCP server (stdio transport) so agents can push events directly;
- *     those pushes also trigger the SyncRunner.
  *
  * An initial sync runs at startup so a freshly started daemon catches up on
  * anything written while it was down. Exits with a clear message if the
@@ -15,7 +13,6 @@
 
 import { isPaired, getDeviceToken } from "../keychain/index.js";
 import { loadConfig } from "../config.js";
-import { startMcpServer, type McpServerHandle } from "../mcp/server.js";
 import { OpenCodeWatcher } from "../watchers/opencode.js";
 import { DirectoryWatcher } from "../watchers/directory-watcher.js";
 import { DaemonState } from "../daemon/state.js";
@@ -43,7 +40,6 @@ export interface StartDeps {
   getDeviceToken: () => Promise<string | null>;
   /** Build the watchers for this run. */
   createWatchers: (state: DaemonState, runner: SyncRunner, config: Awaited<ReturnType<typeof loadConfig>>) => Watcher[];
-  startMcpServer: (state: DaemonState) => Promise<McpServerHandle>;
   createRunner: (state: DaemonState) => SyncRunner;
   /** Resolves when the process is asked to stop (Ctrl+C / SIGTERM). */
   untilStopped: () => Promise<void>;
@@ -78,7 +74,6 @@ const realDeps: StartDeps = {
   isPaired,
   getDeviceToken,
   createWatchers: defaultWatchers,
-  startMcpServer,
   createRunner: (state) =>
     new SyncRunner({
       log: (msg) => state.log(msg),
@@ -114,7 +109,6 @@ export async function runStart(
   const config = await deps.loadConfig();
   const state = deps.createState({ deviceToken, verbose: opts.verbose ?? false });
   const syncRunner = deps.createRunner(state);
-  state.syncRunner = syncRunner;
 
   term.out("agentsofmine-collector starting…\n");
 
@@ -123,9 +117,6 @@ export async function runStart(
     await w.start();
     term.out(`  ${term.paint.green("✓")} ${w.name} watcher active`);
   }
-
-  const mcp = await deps.startMcpServer(state);
-  term.out(`  ${term.paint.green("✓")} MCP server listening (stdio)`);
 
   term.out("\nRunning initial sync…");
   await syncRunner.runNow();
@@ -137,6 +128,5 @@ export async function runStart(
   term.out("\nShutting down…");
   syncRunner.stop();
   for (const w of watchers) await w.stop();
-  mcp.stop();
   return EXIT_OK;
 }

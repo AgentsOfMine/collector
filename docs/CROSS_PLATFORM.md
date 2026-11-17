@@ -31,7 +31,7 @@ These were audited and need no change:
 | **State directory** `~/.agentsofmine` | `os.homedir()` + `path.join`; resolves correctly everywhere (hidden dir on Unix, normal folder on Windows). Used by `daemon/state.ts`, `core/cursor-store.ts`, `core/last-sync-store.ts`, `infrastructure/config-repository.ts`. |
 | **Path-separator handling in globs** | `src/cli/start.ts` and `src/adapters/claude-code/index.ts` strip glob suffixes with `/[/\\]/`, matching both separators. |
 | **Git identity** | `src/core/git-identity.ts` calls `execFileSync("git", …)`; Git exists on all three OSes (assumes it's on `PATH`). |
-| **MCP stdio transport** | `src/mcp/server.ts` sets explicit UTF-8 encoding on stdin. |
+| **MCP stdio transport** | The optional MCP server (`src/index.ts`) uses the official SDK's stdio transport. |
 | **`SIGINT` (Ctrl+C) shutdown** | Fires on Windows consoles too. |
 
 ---

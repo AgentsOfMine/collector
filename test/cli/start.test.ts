@@ -29,10 +29,6 @@ function harness(over: Partial<StartDeps> = {}) {
     createState: vi.fn(() => state),
     createRunner: vi.fn(() => runner),
     createWatchers: vi.fn(() => [fakeWatcher("opencode", log), fakeWatcher("pi", log)]),
-    startMcpServer: vi.fn(async () => {
-      log.push("mcp");
-      return { stop: () => void log.push("stop mcp") };
-    }),
     untilStopped: () => stopped,
     ...over,
   };
@@ -46,7 +42,6 @@ describe("aom start", () => {
     expect(await runStart(term, {}, deps)).toBe(1);
     expect(term.errText()).toContain("not paired");
     expect(deps.createWatchers).not.toHaveBeenCalled();
-    expect(deps.startMcpServer).not.toHaveBeenCalled();
   });
 
   it("returns 1 when paired but the token is gone", async () => {
@@ -57,17 +52,17 @@ describe("aom start", () => {
     expect(deps.createWatchers).not.toHaveBeenCalled();
   });
 
-  it("starts watchers, the MCP server and an initial sync, in that order, then waits", async () => {
+  it("starts the watchers and an initial sync, in that order, then waits", async () => {
     const term = memoryTerminal();
     const { deps, log, release } = harness();
 
     const running = runStart(term, {}, deps);
     await vi.waitFor(() => expect(log).toContain("initial sync"));
 
-    expect(log).toEqual(["start opencode", "start pi", "mcp", "initial sync"]);
+    expect(log).toEqual(["start opencode", "start pi", "initial sync"]);
     expect(term.text()).toContain("opencode watcher active");
     expect(term.text()).toContain("pi watcher active");
-    expect(term.text()).toContain("MCP server listening");
+    expect(term.text()).not.toContain("MCP");
     expect(term.text()).toContain("Press Ctrl+C to stop");
 
     let done = false;
@@ -88,15 +83,15 @@ describe("aom start", () => {
     release();
 
     expect(await running).toBe(0);
-    expect(log.slice(-4)).toEqual(["stop runner", "stop opencode", "stop pi", "stop mcp"]);
+    expect(log.slice(-3)).toEqual(["stop runner", "stop opencode", "stop pi"]);
     expect(term.text()).toContain("Shutting down");
   });
 
-  it("wires the runner into the daemon state so MCP events can trigger syncs", async () => {
-    const { deps, state, runner, release } = harness();
+  it("hands the same runner to the watchers, so a file change triggers a sync", async () => {
+    const { deps, runner, state, release } = harness();
     const running = runStart(memoryTerminal(), {}, deps);
     await vi.waitFor(() => expect(runner.runNow).toHaveBeenCalled());
-    expect((state as { syncRunner: unknown }).syncRunner).toBe(runner);
+    expect(deps.createWatchers).toHaveBeenCalledWith(state, runner, expect.anything());
     release();
     await running;
   });
@@ -114,10 +109,22 @@ describe("aom start", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
     const { deps, release } = harness();
     const running = runStart(memoryTerminal(), {}, deps);
-    await vi.waitFor(() => expect(deps.startMcpServer).toHaveBeenCalled());
+    await vi.waitFor(() => expect(deps.createWatchers).toHaveBeenCalled());
     release();
     await running;
     expect(exit).not.toHaveBeenCalled();
     exit.mockRestore();
+  });
+});
+
+describe("aom start does not run an MCP server", () => {
+  it("leaves stdin alone, so the real MCP entrypoint and the terminal are not fought over", async () => {
+    const before = process.stdin.listenerCount("data");
+    const { deps, release } = harness();
+    const running = runStart(memoryTerminal(), {}, deps);
+    await vi.waitFor(() => expect(deps.createWatchers).toHaveBeenCalled());
+    expect(process.stdin.listenerCount("data")).toBe(before);
+    release();
+    await running;
   });
 });

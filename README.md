@@ -1,6 +1,6 @@
 # AgentsOfMine Collector
 
-> **MCP server + CLI** for syncing AI coding sessions to [AgentsOfMine](https://agentsofmine.io).
+> **CLI + background daemon** (with an optional MCP server) for syncing AI coding sessions to [AgentsOfMine](https://agentsofmine.io).
 
 Works with any editor or terminal — Claude Code CLI, OpenCode CLI, Cursor, Zed, or any future agent.
 
@@ -135,10 +135,9 @@ npx agentsofmine pair
 # Step 1 — pair this machine with your AgentsOfMine account (one-time)
 aom pair
 
-# Step 2 — run the collector as an MCP server
+# Step 2 — run the collector; it watches your agents' session files and syncs changes
 aom start
 
-# Sessions sync when your agent calls the `sync_now` tool.
 # To sync once from the terminal instead, run: aom sync
 ```
 
@@ -153,10 +152,10 @@ aom start
 | `aom pair` | One-time pairing: prints URL + QR, polls until approved, stores device token in OS keychain |
 | `aom pair --force` | Discard the existing pairing and start a fresh one (also accepts `--reset`) |
 | `aom pair --no-browser` | Pair without auto-opening the browser |
-| `aom start` | Starts the MCP server (stdio) with file watchers and sync tools |
+| `aom start` | Runs the daemon: file watchers plus an initial sync, until Ctrl+C |
 | `aom status` | Prints pairing status and last-synced timestamps |
 | `aom status --json` | Prints a single machine-readable JSON line (`paired`, `deviceId`, `lastSyncAt`, `queueDepth`, `lastError`) — for scripts and status integrations |
-| `aom sync` | Runs one sync cycle now and prints the result as JSON |
+| `aom sync` | Runs one sync cycle now and prints how many sessions synced or failed (exit code 1 if any failed) |
 | `aom unpair [-y]` | Removes the device token from the keychain and clears local state (`-y` skips the prompt) |
 | `aom --version` | Prints the installed version |
 
@@ -191,9 +190,8 @@ aom --version
 Your agent has already written its session to local disk
         │
         ▼
-agentsofmine-collector  (runs as an MCP server: `aom start`)
-  ├── File watchers detect new/changed sessions in real time
-  └── Your agent calls the `sync_now` MCP tool on demand
+agentsofmine-collector  (the daemon: `aom start`)
+  └── File watchers detect new/changed sessions in real time
         │
         ▼
   Provider adapters read the sessions already on disk:
@@ -209,14 +207,11 @@ agentsofmine-collector  (runs as an MCP server: `aom start`)
   AgentsOfMine cloud → your phone
 ```
 
-The collector exposes two MCP tools over stdio:
-- **`sync_now`** — reads new sessions via the provider adapters and uploads them.
-- **`status`** — returns the result of the last sync.
-
-Three sync modes:
-- **MCP tool** — your agent calls `sync_now` during a session.
+Two ways to sync:
 - **File watchers** — `aom start` monitors session directories and syncs changes automatically.
 - **CLI one-shot** — `aom sync` triggers a single sync cycle from the terminal.
+
+**Optional MCP server.** The package also ships a separate MCP server over stdio, [`dist/index.js`](src/index.ts), that an MCP-aware agent can launch itself (`node <install path>/dist/index.js`). It exposes two tools: **`sync_now`** (reads new sessions via the provider adapters and uploads them) and **`status`** (the result of the last sync). It is independent of `aom start`; there is no `aom` subcommand for it yet.
 
 ---
 
@@ -251,7 +246,7 @@ Each provider has its own adapter that knows the local session format.
 
 ### Secret redaction
 
-Every session passes through [`src/core/redact.ts`](src/core/redact.ts) just before it is sent (CLI `aom sync`, the daemon, and the MCP `sync_now` tool all share the same path). It rewrites matches in message text, reasoning, tool input and output, the session title and changed-file paths to a marker such as `<REDACTED:github-token>`.
+Every session passes through [`src/core/redact.ts`](src/core/redact.ts) just before it is sent (CLI `aom sync`, the daemon, and the optional MCP `sync_now` tool all share the same path). It rewrites matches in message text, reasoning, tool input and output, the session title and changed-file paths to a marker such as `<REDACTED:github-token>`.
 
 It recognises: AWS access key ids (`AKIA…`) and AWS secret keys next to their name; GitHub tokens (`ghp_`, `github_pat_`, …); `sk-…` API keys (OpenAI, Anthropic); Slack tokens; JWTs; `Bearer` tokens; PEM / OpenSSH private-key blocks (including truncated ones); passwords inside connection-string URLs; and `UPPER_CASE_NAME=value` assignments whose name contains `PASSWORD`, `SECRET`, `TOKEN`, `API_KEY`, `PRIVATE_KEY` or `ACCESS_KEY`. In tool-call JSON, string values under keys like `password` or `api_key` are redacted whatever they look like.
 
@@ -264,7 +259,7 @@ Set `AOM_NO_REDACT=1` to disable it for debugging; the collector prints a warnin
 ## Architecture
 
 The implementation lives in [`src/`](src/):
-- **MCP server entrypoint and tool definitions** — [`src/index.ts`](src/index.ts) (`sync_now`, `status`)
+- **Optional MCP server and tool definitions** — [`src/index.ts`](src/index.ts) (`sync_now`, `status`)
 - **CLI dispatcher and subcommands** — [`src/bin/aom.ts`](src/bin/aom.ts), [`src/cli/`](src/cli/) (`pair`, `start`, `status`, `sync`, `unpair`)
 - **Provider adapters** — [`src/adapters/`](src/adapters/) (one per provider, implementing [`adapter.ts`](src/adapters/adapter.ts))
 - **Session normalization schema** (`CanonicalSession` + `CanonicalMessage`) — [`src/core/canonical.ts`](src/core/canonical.ts)

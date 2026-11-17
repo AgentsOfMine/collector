@@ -1,7 +1,7 @@
 {
   "name": "agentsofmine",
   "version": "0.1.1",
-  "description": "Local MCP server that reads AI coding agent sessions and syncs to AgentsOfMine backend",
+  "description": "Local collector that reads AI coding agent sessions and syncs them to the AgentsOfMine backend",
   "license": "MIT",
   "homepage": "https://agentsofmine.io",
   "repository": {

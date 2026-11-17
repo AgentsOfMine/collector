@@ -4,7 +4,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { OpenCodeAdapter } from "../../../src/adapters/opencode/index.js";
-import { detectSchema, queryMessages } from "../../../src/adapters/opencode/sqlite-reader.js";
+import { detectSchema } from "../../../src/adapters/opencode/sqlite-reader.js";
+import { queryMessagesV2 } from "../../../src/adapters/opencode/v2-reader.js";
 import type { SyncItem } from "../../../src/adapters/adapter.js";
 
 const V2_SCHEMA = `
@@ -64,7 +65,7 @@ describe("OpenCode v2 schema", () => {
 
   it("maps user and assistant messages, skipping system and idle rows", () => {
     const db = new Database(dbPath, { readonly: true });
-    const msgs = queryMessages(db, "ses_new", "v2");
+    const msgs = queryMessagesV2(db, "ses_new");
     db.close();
     expect(msgs.map((m) => m.role)).toEqual(["user", "assistant"]);
     expect(msgs[0]!.parts).toEqual([{ type: "text", text: "fix it" }]);

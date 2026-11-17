@@ -8,6 +8,7 @@ export interface FileChangeSummary {
 
 interface EditInput {
   filePath?: string;
+  path?: string;
   oldString?: string;
   newString?: string;
   content?: string;
@@ -29,7 +30,7 @@ export function deriveFileChanges(messages: CanonicalMessage[]): FileChangeSumma
       if (part.tool !== "edit" && part.tool !== "write") continue;
 
       const input = part.input as EditInput | undefined;
-      const filePath = input?.filePath;
+      const filePath = input?.filePath ?? input?.path;
       if (typeof filePath !== "string" || filePath === "") continue;
 
       files.add(filePath);

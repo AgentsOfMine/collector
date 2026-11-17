@@ -75,3 +75,20 @@ describe("deriveFileChanges", () => {
     expect(result.filesChanged.sort()).toEqual(["/a.ts", "/b.ts"]);
   });
 });
+
+describe("deriveFileChanges — OpenCode v2 `path` input", () => {
+  it("accepts `path` as well as `filePath`", () => {
+    const result = deriveFileChanges([
+      {
+        messageId: "m",
+        sessionId: "s",
+        role: "assistant",
+        senderName: "OpenCode",
+        createdAt: new Date(0).toISOString(),
+        parts: [{ type: "tool", tool: "write", input: { path: "/a/b.md", content: "x\ny" } }],
+      },
+    ]);
+    expect(result.filesChanged).toEqual(["/a/b.md"]);
+    expect(result.linesAdded).toBe(2);
+  });
+});

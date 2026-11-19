@@ -8,7 +8,9 @@ checkedAgainst: "Collector 0.1.3, commit abe3f56 (source read and the commands b
 kind: reference
 ---
 
-Read this before you install. Everything below is from the collector's source, and every claim has a command you can run yourself.
+**Why this matters.** Installing a tool that reads your coding sessions means trusting it with your prompts and your code. This page lets you decide on facts: what it reads, what it removes before upload, what it sends and what it never touches, each with a command you can run to check.
+
+Read this before you install. Everything below is from the collector's source (tested by reading it and running the commands shown), and every claim has a command you can run yourself.
 
 ## What it reads
 
@@ -27,7 +29,9 @@ On 19 November 2026 every match was in `src/core/cursor-store.ts`, `src/core/las
 It does not log into any AI provider. To check:
 
 ```sh
-grep -rniE "anthropic\.com|api\.openai\.com|api\.github\.com|copilot|oauth|client_secret" src/
+grep -rniE \
+  "anthropic\.com|api\.openai\.com|api\.github\.com|copilot|oauth|client_secret" \
+  src/
 ```
 
 On 19 November 2026 that printed nothing.

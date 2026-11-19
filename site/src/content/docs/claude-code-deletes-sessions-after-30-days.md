@@ -9,6 +9,8 @@ kind: guide
 ---
 **Yes.** By default Claude Code deletes session transcripts that are older than 30 days, in the background and without a message. To keep them, raise `cleanupPeriodDays` in `~/.claude/settings.json`, or copy the files somewhere Claude Code does not touch. Two cautions: the setting has not always been honoured (see below), and a copy kept inside `~/.claude` is not a safe copy.
 
+**Why this matters.** A Claude Code session is the only record of why a change was made, and without a setting or a copy it is deleted after 30 days, silently. You need this before you lose one you wanted: the setting takes a minute and a copy script takes ten.
+
 ## What is deleted, and when
 
 The [Claude Code documentation](https://code.claude.com/docs/en/claude-directory#cleaned-up-automatically) says a background sweep runs after a session starts and deletes files older than `cleanupPeriodDays`. The default is 30, the minimum is 1, and `0` is rejected. The sweep shows nothing: an old session simply stops appearing in `/resume`.

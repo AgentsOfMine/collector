@@ -8,6 +8,8 @@ checkedAgainst: "OpenCode 2.3.0 run on copies and a private server; Codex source
 kind: guide
 ---
 
+**Why this matters.** A long session fills the model's context, and the agent gets slower, costs more per message and loses track of earlier decisions. Compaction keeps a session usable by replacing the older part with a summary. This page tells you what each of three agents keeps and drops, which one can compact only part of a session, and what to set so it happens at a moment you choose.
+
 Compaction replaces the older part of a session with a summary so the session can go on past the model's context limit. All three agents do it, on a command and automatically near the limit. They differ in what they keep, in whether you can limit it to one part of the session, and in what they leave on disk. Paths and file formats are on [the session formats page](/session-formats/); this page covers only compaction. What to do about it comes right after the table.
 
 | | Claude Code | OpenCode | Codex |
@@ -29,7 +31,8 @@ Table: what each agent documents or does, checked on 19 November 2026. OpenCode'
 4. **Drop an irrelevant stretch.** Claude Code: `/rewind`, pick the message, **Summarize from here** or **Summarize up to here**. OpenCode and Codex have no command for it. For OpenCode there is a workaround, tested on a copy of my database (45 messages became 24 and the session kept its id): export, remove a range with `jq`, delete the original, import the edited file.
 
    ```sh
-   opencode session export "$ID" > full.json            # keep this file: it is your undo
+   # keep full.json: it is your undo
+   opencode session export "$ID" > full.json
    jq '.messages |= (to_entries | map(select(.key < 10 or .key > 30))
        | map(.value))' full.json > edited.json
    opencode session delete "$ID" && opencode session import edited.json

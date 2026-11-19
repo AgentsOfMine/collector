@@ -8,6 +8,8 @@ checkedAgainst: "OpenCode 2.3.0, Codex rollout files written by 0.169.0-alpha.11
 kind: reference
 ---
 
+**Why this matters.** If you write a tool that reads your own sessions (a backup, an export, a viewer), or you wonder why one stopped showing new ones, you need to know where each agent keeps them and in what shape. This page gives you that for four agents, with the version each was checked against.
+
 The collector reads files your agents already write. This page says where they are, what shape they have, and which fields the collector uses. Paths are for **macOS**; I did not check Windows or Linux.
 
 | | OpenCode | Claude Code | Codex | Pi |

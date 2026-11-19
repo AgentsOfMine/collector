@@ -8,6 +8,8 @@ checkedAgainst: "Collector 0.1.3, commit abe3f56: the adapter interface, the pro
 kind: guide
 ---
 
+**Why this matters.** If you use a coding agent the collector does not read yet, its sessions never reach your account. An adapter fixes that for you and for everyone else who uses the same agent, and it is about one file plus a test.
+
 The most useful contribution to the collector is an adapter for an agent it does not read yet. This is the whole job.
 
 ## The four steps

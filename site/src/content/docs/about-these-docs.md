@@ -8,7 +8,9 @@ checkedAgainst: "GitHub's General Privacy Statement (effective 27 April 2026), r
 kind: about
 ---
 
-These pages document the open-source [AgentsOfMine collector](https://github.com/AgentsOfMine/collector). They are written and maintained by the AgentsOfMine project.
+**Why this matters.** You are asked to let a program read your coding sessions, which hold your prompts and your code. These pages let you check, before you install it, exactly what it reads and uploads, and what each claim was tested against.
+
+These pages document the open-source [AgentsOfMine collector](https://github.com/AgentsOfMine/collector). They are written and maintained by the AgentsOfMine project. Each claim is marked as tested (run on a real install), read from source, or assumed from the vendor's documentation.
 
 ## How a page is made
 

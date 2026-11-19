@@ -1,6 +1,6 @@
 ---
 title: Add support for a new AI coding agent
-description: The four steps, the adapter interface, how to choose a cursor, and the checklist an adapter has to pass to be accepted into the collector.
+description: The four steps, the adapter interface, how to choose a cursor, and the checklist an adapter has to pass to be accepted into the AgentsOfMine collector.
 slug: add-an-agent
 order: 3
 verified: 2026-11-19
@@ -8,9 +8,21 @@ checkedAgainst: "Collector 0.1.3, commit abe3f56: the adapter interface, the pro
 kind: guide
 ---
 
-**Why this matters.** If you use a coding agent the collector does not read yet, its sessions never reach your account. An adapter fixes that for you and for everyone else who uses the same agent, and it is about one file plus a test.
+**Why this matters.** If you use a coding agent that the AgentsOfMine collector does not read yet, its sessions never reach your account. The collector is the open-source program that reads your agents' session files and uploads a copy to your private workspace. An adapter fixes that for you and for everyone else who uses the same agent, and it is about one file plus a test.
 
 The most useful contribution to the collector is an adapter for an agent it does not read yet. This is the whole job.
+
+## Who needs this
+
+**Possible scenario.** Your team uses a coding agent the collector does not read. Its sessions are on disk but never reach your account, so the picture has a hole exactly where that agent is used. Someone writes an adapter once, and everyone who uses that agent benefits.
+
+| Role | What changes for them |
+|---|---|
+| Senior software engineer | Gets a bounded job: one adapter folder, one test and an existing adapter to copy the shape from. |
+| Junior software engineer | Gets a contribution with a clear end and a model to follow, which is a way into an open-source project. |
+| DevOps or platform engineer | Can read the adapter's code before rolling it out, because it is one folder. |
+
+Table: who gains what, **my reasoning, not measured.** I did not measure time saved for any role.
 
 ## The four steps
 

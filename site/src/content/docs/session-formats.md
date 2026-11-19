@@ -1,6 +1,6 @@
 ---
 title: Where AI coding agents keep their sessions
-description: Paths, file formats and the fields the collector reads for OpenCode, Claude Code, Codex and Pi, with the version each was checked against.
+description: Paths, file formats and the fields the AgentsOfMine collector reads for OpenCode, Claude Code, Codex and Pi, with the version each was checked against.
 slug: session-formats
 order: 1
 verified: 2026-11-19
@@ -10,7 +10,7 @@ kind: reference
 
 **Why this matters.** If you write a tool that reads your own sessions (a backup, an export, a viewer), or you wonder why one stopped showing new ones, you need to know where each agent keeps them and in what shape. This page gives you that for four agents, with the version each was checked against.
 
-The collector reads files your agents already write. This page says where they are, what shape they have, and which fields the collector uses. Paths are for **macOS**; I did not check Windows or Linux.
+The AgentsOfMine collector, an open-source program that uploads a copy of your coding sessions to your private workspace, reads files your agents already write. This page says where they are, what shape they have, and which fields the collector uses. Paths are for **macOS**; I did not check Windows or Linux.
 
 | | OpenCode | Claude Code | Codex | Pi |
 |---|---|---|---|---|
@@ -26,6 +26,18 @@ Where the collector looks, on macOS:
 - **Claude Code:** `~/.claude/projects/<project>/<session>.jsonl`, one directory deep.
 - **Codex:** every `rollout-*.jsonl` below `~/.codex/sessions/`, which is organised as `YYYY/MM/DD/rollout-<timestamp>-<uuid>.jsonl`. Files ending in `.jsonl.zst` are not read.
 - **Pi:** every `*.jsonl` below `~/.pi/agent/sessions/`, organised as `--<project>--/<timestamp>_<uuid>.jsonl`.
+
+## Who needs this
+
+**Possible scenario.** You want a nightly copy of everyone's agent sessions in one folder, to search later. The four agents keep them in different shapes: one SQLite database, and JSONL files per session, per day or per project. A script that assumes one shape silently skips the others.
+
+| Role | What changes for them |
+|---|---|
+| DevOps or platform engineer | Gets the path and the shape per agent for one backup job, with the version each was read at. |
+| Senior software engineer | Knows which fields the collector uses, so their own tool can read the same ones. |
+| Architect | Treats each format as an interface that can change, and sees which versions this page was checked against. |
+
+Table: who gains what, **my reasoning, not measured.** I did not measure time saved for any role.
 
 ## OpenCode
 

@@ -1,5 +1,5 @@
 ---
-title: What the collector reads, redacts and uploads
+title: What the AgentsOfMine collector reads, redacts and uploads
 description: Exactly what the AgentsOfMine collector reads from disk, what it removes before upload, what it sends and how often, and how to check each claim in the source.
 slug: what-the-collector-sends
 order: 2
@@ -10,7 +10,19 @@ kind: reference
 
 **Why this matters.** Installing a tool that reads your coding sessions means trusting it with your prompts and your code. This page lets you decide on facts: what it reads, what it removes before upload, what it sends and what it never touches, each with a command you can run to check.
 
-Read this before you install. Everything below is from the collector's source (tested by reading it and running the commands shown), and every claim has a command you can run yourself.
+Read this before you install the AgentsOfMine collector, an open-source program that reads the session files your coding agents write and uploads a copy to your private workspace. Everything below is from the collector's source (tested by reading it and running the commands shown), and every claim has a command you can run yourself.
+
+## Who needs this
+
+**Possible scenario.** A security reviewer asks one question before the tool goes on company laptops: what leaves the machine? You can answer with a list taken from the source, and each line has a command the reviewer can run to see it, instead of trusting you.
+
+| Role | What changes for them |
+|---|---|
+| CTO or engineering lead | Gets facts to decide on: what is read, what is removed, what is sent and what is never touched. |
+| DevOps or platform engineer | Can run the given commands on a test machine before any rollout. |
+| Senior software engineer | Can read the cited source lines for the claim the reviewer will ask about. |
+
+Table: who gains what, **my reasoning, not measured.** I did not measure time saved for any role.
 
 ## What it reads
 

@@ -1,6 +1,6 @@
 ---
 title: Compact a coding session without losing the thread
-description: What /compact keeps in Claude Code, OpenCode and Codex, which can compact only part of a session, what to set before it runs, and what the collector reads.
+description: What /compact keeps in Claude Code, OpenCode and Codex, which can compact part of a session, what to set, and what the open-source AgentsOfMine collector reads.
 slug: compaction-in-claude-code-opencode-codex
 order: 6
 verified: 2026-11-19
@@ -22,6 +22,18 @@ Compaction replaces the older part of a session with a summary so the session ca
 | Original messages afterwards | stay in the transcript (the vendor says so for rewind-summarize; not stated for `/compact`) | stay in the database (tested) | stay in the rollout file (tested) |
 
 Table: what each agent documents or does, checked on 19 November 2026. OpenCode's API and database were run (its keybind and settings are from its documentation); Claude Code is from its documentation and was not run; Codex is from its source and from rollout files on one machine.
+
+## Who needs this
+
+**Possible scenario.** Your team uses Claude Code and Codex side by side. A developer who learned to compact only part of a session in one expects the same in the other, and finds there is no such command. They either lose the thread or start again. The table on this page tells them before they try.
+
+| Role | What changes for them |
+|---|---|
+| Senior software engineer | Knows which agent can limit compaction to part of a session and which cannot, and can choose per task. |
+| Architect | Knows what each agent keeps after a compaction, so the decisions that matter go in files that reload and not only in the chat. |
+| DevOps or platform engineer | Knows the one setting per agent that moves the point where automatic compaction starts. |
+
+Table: who gains what, **my reasoning, not measured.** I did not measure time saved for any role.
 
 ## What to do about it
 
@@ -68,9 +80,9 @@ I did not test any of these on Claude Code or Codex.
 - **On disk.** A compaction is a `compacted` line in the rollout file with a `message` (the summary) and a `replacement_history` (the items that stand in for the older ones). Three of my 201 rollout files contain one each: summaries of 2,406 to 4,236 characters and replacement histories of 10 to 148 items. Messages before the compaction stay in the file (53, 294 and 23 user and assistant messages before it; 11, 135 and 6 after).
 - **Not run.** The Codex command line is not installed here. The behaviour above is from the source at commit 6eea328 and from the three rollout files.
 
-## What the collector reads of a compacted session
+## What the AgentsOfMine collector reads of a compacted session
 
-The collector uploads user and assistant messages and ignores everything else (collector 0.1.3, commit cfb2507). For OpenCode that means the `compaction` row and its summary are not uploaded, and the earlier messages, which stay in the table, are. For Codex a `compacted` line is not a message, so the summary is skipped. For Claude Code only lines with `message.role` `user` or `assistant` are kept; I found no real transcript on this machine to check for a separate summary record. So an uploaded session shows the conversation as it happened, not the shortened context the model worked from. The collector has no code that mentions compaction.
+The AgentsOfMine collector is an open-source program that reads the session files your coding agents write and uploads a copy to your private workspace. It uploads user and assistant messages and ignores everything else (collector 0.1.3, commit cfb2507). For OpenCode that means the `compaction` row and its summary are not uploaded, and the earlier messages, which stay in the table, are. For Codex a `compacted` line is not a message, so the summary is skipped. For Claude Code only lines with `message.role` `user` or `assistant` are kept; I found no real transcript on this machine to check for a separate summary record. So an uploaded session shows the conversation as it happened, not the shortened context the model worked from. The collector has no code that mentions compaction.
 
 ## What this page does not tell you
 

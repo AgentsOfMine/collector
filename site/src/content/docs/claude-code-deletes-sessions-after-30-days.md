@@ -11,6 +11,18 @@ kind: guide
 
 **Why this matters.** A Claude Code session is the only record of why a change was made, and without a setting or a copy it is deleted after 30 days, silently. You need this before you lose one you wanted: the setting takes a minute and a copy script takes ten.
 
+## Who needs this
+
+**Possible scenario.** Six weeks after a feature shipped, a bug is reported in it. You remember talking through a trade-off with the agent and you want the reason. The session file was swept in the background after 30 days. Nothing warned you, and nothing can bring it back.
+
+| Role | What changes for them |
+|---|---|
+| Junior software engineer | Knows the default exists before the first session is lost, and can raise one number. |
+| DevOps or platform engineer | Decides once whether to raise `cleanupPeriodDays` or run a copy job, instead of every developer finding out alone. |
+| CTO or engineering lead | Sees that how long agent history is kept is set by a vendor default unless someone chooses otherwise. |
+
+Table: who gains what, **my reasoning, not measured.** I did not measure time saved for any role.
+
 ## What is deleted, and when
 
 The [Claude Code documentation](https://code.claude.com/docs/en/claude-directory#cleaned-up-automatically) says a background sweep runs after a session starts and deletes files older than `cleanupPeriodDays`. The default is 30, the minimum is 1, and `0` is rejected. The sweep shows nothing: an old session simply stops appearing in `/resume`.

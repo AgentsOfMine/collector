@@ -76,7 +76,13 @@ for (const f of [...distFiles, ...srcFiles.filter((p) => !p.includes("/dist/"))]
 const imgsInDist = distFiles.filter((f) => imgExt.has(extname(f).toLowerCase()));
 
 // ---------------------------------------------------------------------------------------------
-const pages = distFiles.filter((f) => f.endsWith(".html"));
+// Google Search Console's ownership file is plain text with an .html name, not a page. It is recognised only in its exact
+// shape (name google<hex>.html, content "google-site-verification: <same name>"); any other .html file is still a page.
+const isGoogleVerification = (f) => {
+  const name = f.split("/").pop();
+  return /^google[0-9a-f]{16}\.html$/.test(name) && readFileSync(f, "utf8").trim() === `google-site-verification: ${name}`;
+};
+const pages = distFiles.filter((f) => f.endsWith(".html") && !isGoogleVerification(f));
 const byUrl = new Map(
   pages.map((f) => {
     const u = "/" + relative(DIST, f).replace(/index\.html$/, "");

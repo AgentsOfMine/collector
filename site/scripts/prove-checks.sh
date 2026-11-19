@@ -100,6 +100,9 @@ t "a new file in src writes to disk"   "[write-paths]"   check "printf 'import {
 t "the collector starts sending PUT"   "[http-verbs]"    check "printf '\nexport const o = { method: \"PUT\" };\n' >> ../src/core/paths.ts"
 t "a provider login appears in the source" "[provider-login]" check "printf '\n// oauth flow\n' >> ../src/core/paths.ts"
 
+t "a fake Search Console file with the wrong content is read as a page" "[h1]" check "printf 'hello' > public/google1111111111111111.html"
+t "a Search Console file whose content names another file is read as a page" "[h1]" check "printf 'google-site-verification: other.html' > public/google2222222222222222.html"
+
 echo
 reset
 DEFINED=$(grep -c '^t "' "$0")

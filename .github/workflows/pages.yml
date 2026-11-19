@@ -1,0 +1,67 @@
+name: Docs site
+
+# Builds the documentation in site/ and publishes it with GitHub Pages at
+# https://agentsofmine.github.io/collector/. Nothing here runs on a pull request from a fork with a token: the
+# deploy job runs on pushes to main only.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "src/**"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "src/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# The repository's default token is read-only, so what each job needs is declared here.
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      # The checks, then the site again in a real browser under the policy the pages carry. The employer-word rule needs a
+      # local list that a public repository must not hold; it is skipped here and enforced before every push on the owner's machine.
+      - run: npm run check
+        env:
+          CI: "true"
+      - run: npm run csp
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/dist
+
+  deploy:
+    # A pull request builds and checks; only main publishes.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from "astro:content";
+import type { GetStaticPaths } from "astro";
+import Base from "../layouts/Base.astro";
+import { SITE, url } from "../site.config";
+import { formatDate, isoDate } from "../lib/format";
+
+export const getStaticPaths = (async () => {
+  const pages = await getCollection("docs");
+  return pages.map((page) => ({ params: { slug: page.data.slug }, props: { page } }));
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+const d = page.data;
+const { Content } = await render(page);
+---
+
+<Base title={d.title} description={d.description} path={`/${d.slug}/`} type="article">
+  <article class="max-w-[65ch]">
+    <header>
+      <p class="aom-caption text-neutral-600"><a href={url("/")} class="hover:underline">Docs</a></p>
+      <h1 class="mt-3 text-heading-l text-text-primary">{d.title}</h1>
+      <p class="mt-4 text-body-l text-neutral-400">{d.description}</p>
+      <p class="callout mt-6">
+        <strong>Checked </strong><time datetime={isoDate(d.verified)}>{formatDate(d.verified)}</time>. {d.checkedAgainst}
+        If something here is wrong, <a class="text-brand-blue-500 underline underline-offset-2" href={`${SITE.repo}/issues`} rel="noopener noreferrer">open an issue</a>.
+      </p>
+    </header>
+    <div class="prose mt-8"><Content /></div>
+  </article>
+</Base>

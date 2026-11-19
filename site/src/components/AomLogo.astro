@@ -1,0 +1,69 @@
+---
+interface Props {
+  class?: string;
+  height?: number;
+  id?: string;
+}
+
+const { class: className = "", height = 48, id = "aom" } = Astro.props;
+
+// viewBox is 1240×260, so width = height × (1240/260)
+const width = Math.round(height * (1240 / 260));
+
+const bubble = `${id}-bubble`;
+const gradFront = `${id}-grad-front`;
+const gradMid   = `${id}-grad-mid`;
+const gradRear  = `${id}-grad-rear`;
+---
+
+<svg
+  role="img"
+  aria-label="AgentsOfMine"
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1240 260"
+  width={width}
+  height={height}
+  class={className}
+>
+  <defs>
+    <path id={bubble} d="M48,0 H150 A48,48 0 0,1 198,48 V122 A48,48 0 0,1 150,170 H80 L50,195 A4,4 0 0,1 44,192 L60,170 H48 A48,48 0 0,1 0,122 V48 A48,48 0 0,1 48,0 Z"/>
+    <linearGradient id={gradFront} x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A65F2"/>
+      <stop offset="100%" stop-color="#0055DE"/>
+    </linearGradient>
+    <linearGradient id={gradMid} x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#353B46"/>
+      <stop offset="100%" stop-color="#252B35"/>
+    </linearGradient>
+    <linearGradient id={gradRear} x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C6AF2"/>
+      <stop offset="100%" stop-color="#5E52D4"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(48, 20)">
+    <use href={`#${bubble}`} fill={`url(#${gradRear})`} transform="translate(0, 15)"></use>
+    <use href={`#${bubble}`} fill={`url(#${gradMid})`} stroke="#0B0F14" stroke-width="6" stroke-linejoin="round" transform="translate(21, 15)"></use>
+    <use href={`#${bubble}`} fill={`url(#${gradFront})`} stroke="#0B0F14" stroke-width="6" stroke-linejoin="round" transform="translate(42, 15)"></use>
+    <circle cx="111" cy="97" r="6" fill="white" fill-opacity="0.9"></circle>
+    <circle cx="141" cy="97" r="6" fill="white" fill-opacity="0.9"></circle>
+    <circle cx="171" cy="97" r="6" fill="white" fill-opacity="0.9"></circle>
+  </g>
+
+  <!-- Wordmark: ∧ glyph (polyline matching Inter 700 A geometry) + "gentsOfMine" -->
+  <!-- scale=0.66: Inter 700 88px cap-height=0.727em≈64px, A width=0.75em≈66px -->
+  <!-- ∧ visual height: (116-18)*0.66=64.7px; y_top = 162 - 64.7 - 18*0.66 = 85.4 -->
+  <g transform="translate(333, 85) scale(0.66)" fill="none">
+    <polyline
+      points="4,116 50,18 96,116"
+      stroke="#F5F7FA"
+      stroke-width="23"
+      stroke-linecap="round"
+      stroke-linejoin="miter"
+      stroke-miterlimit="10"
+    />
+  </g>
+  <text font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="88" letter-spacing="-0.025em">
+    <tspan x="399" y="162" fill="#F5F7FA">gents</tspan><tspan fill="#7C6AF2">Of</tspan><tspan fill="#F5F7FA">Mine</tspan>
+  </text>
+</svg>

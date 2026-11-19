@@ -1,0 +1,11 @@
+---
+import Base from "../layouts/Base.astro";
+import { url } from "../site.config";
+---
+
+<Base title="Page not found" description="This page does not exist in the collector documentation. Try the list of pages." path="/404/" noindex>
+  <div class="max-w-[65ch]">
+    <h1 class="text-heading-l text-text-primary">That page is not here</h1>
+    <p class="mt-4 text-body-l text-neutral-400">It may have moved. Try the <a class="text-brand-blue-500 underline underline-offset-4 hover:text-text-primary" href={url("/")}>list of pages</a>.</p>
+  </div>
+</Base>

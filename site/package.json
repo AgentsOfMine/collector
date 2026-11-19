@@ -1,0 +1,26 @@
+{
+  "name": "agentsofmine-collector-docs",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Documentation site for the AgentsOfMine collector (GitHub Pages).",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview --port 4399",
+    "check": "astro build && node scripts/check.mjs && node scripts/check-drift.mjs",
+    "csp": "node scripts/csp-smoke.mjs",
+    "prove": "scripts/prove-checks.sh",
+    "og": "node scripts/make-og.mjs",
+    "verify": "npm run check && npm run csp"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.3",
+    "@tailwindcss/vite": "4.3.0",
+    "astro": "6.4.2",
+    "tailwindcss": "4.3.0"
+  }
+}

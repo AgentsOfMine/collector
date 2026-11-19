@@ -1,0 +1,26 @@
+<svg role="img" aria-labelledby="title desc" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <title id="title">AgentsOfMine — Mark Dark Full</title>
+  <desc id="desc">AgentsOfMine logo: three layered chat bubbles with transcript dots.</desc>
+  <defs>
+    <path id="bubble-path" d="M48,0 H150 A48,48 0 0,1 198,48 V122 A48,48 0 0,1 150,170 H80 L50,195 A4,4 0 0,1 44,192 L60,170 H48 A48,48 0 0,1 0,122 V48 A48,48 0 0,1 48,0 Z"/>
+    <linearGradient id="grad-front" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A65F2"/>
+      <stop offset="100%" stop-color="#0055DE"/>
+    </linearGradient>
+    <linearGradient id="grad-mid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#353B46"/>
+      <stop offset="100%" stop-color="#252B35"/>
+    </linearGradient>
+    <linearGradient id="grad-rear" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C6AF2"/>
+      <stop offset="100%" stop-color="#5E52D4"/>
+    </linearGradient>
+  </defs>
+
+                <use href="#bubble-path" fill="url(#grad-rear)" transform="translate(0, 15)"></use>
+                <use href="#bubble-path" fill="url(#grad-mid)" stroke="#0B0F14" stroke-width="6" stroke-linejoin="round" transform="translate(21, 15)"></use>
+                <use href="#bubble-path" fill="url(#grad-front)" stroke="#0B0F14" stroke-width="6" stroke-linejoin="round" transform="translate(42, 15)"></use>
+                <circle cx="111" cy="97" r="6" fill="white" fill-opacity="0.9"></circle>
+                <circle cx="141" cy="97" r="6" fill="white" fill-opacity="0.9"></circle>
+                <circle cx="171" cy="97" r="6" fill="white" fill-opacity="0.9"></circle>
+              </svg>

@@ -1,0 +1,30 @@
+---
+import AomLogo from "./AomLogo.astro";
+import Container from "./Container.astro";
+import { SITE, url } from "../site.config";
+const links = [
+  { href: url("/"), label: "Docs" },
+  { href: SITE.repo, label: "Source", external: true },
+  { href: SITE.blog, label: "Blog", external: true },
+];
+---
+
+<header class="sticky top-0 z-50 bg-bg-canvas/85 backdrop-blur border-b border-border-default">
+  <Container as="nav" class="flex h-16 items-center justify-between" aria-label="Main">
+    <a href={url("/")} class="flex items-center min-h-11" aria-label="AgentsOfMine collector docs, home">
+      <AomLogo height={44} id="docs-nav-logo" />
+    </a>
+    <ul class="flex items-center gap-4 sm:gap-8">
+      {links.map((l) => (
+        <li>
+          <a href={l.href} class="inline-flex items-center min-h-11 text-body-s text-neutral-400 hover:text-text-primary transition-colors" rel={l.external ? "noopener noreferrer" : undefined}>
+            {l.label}{l.external && <span aria-hidden="true" class="ml-1 text-neutral-600">↗</span>}
+          </a>
+        </li>
+      ))}
+      <li class="hidden sm:block">
+        <a href={`${SITE.product}/#get-started`} class="inline-flex items-center h-11 px-4 rounded-sm bg-brand-blue-500 hover:bg-brand-blue-700 text-text-primary text-body-s font-semibold transition-colors">Get AgentsOfMine</a>
+      </li>
+    </ul>
+  </Container>
+</header>

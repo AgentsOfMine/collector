@@ -1,0 +1,375 @@
+/*
+ * AgentsOfMine collector docs. The token bridge below is copied from the AgentsOfMine landing
+ * page (agentsofmine.io); when a token changes, change it there first, then here. The reading
+ * styles at the end follow the same rules as the blog: 65ch column, underlined links, no
+ * syntax-highlight palette, colors only through tokens.
+ *
+ * Original header:
+ * AgentsOfMine — Tailwind v4 token bridge.
+ *
+ * Every value in this file traces to digital-id/tokens/tokens.json (dark
+ * mode resolutions). The @theme directive turns these CSS variables into
+ * Tailwind utility classes:
+ *
+ *   --color-bg-canvas       → bg-canvas, text-bg-canvas, border-bg-canvas
+ *   --spacing-6             → p-6, m-6, gap-6, top-6, ...
+ *   --radius-lg             → rounded-lg
+ *   --font-ui               → font-ui
+ *
+ * Page is dark-mode-first; the values below are the dark-mode token
+ * resolutions. A future light-mode story would override under
+ * `:root[data-theme="light"]`.
+ *
+ * RULES
+ * -----
+ *   1. Never set a color outside the palette below. Every fill/stroke/text
+ *      color in any .astro file MUST resolve to one of these classes.
+ *   2. Never set a spacing value outside {2,3,4,6,8,12,16}. The gap
+ *      between {3,4} → "px-3.5" is forbidden.
+ *   3. Inter for everything; JetBrains Mono only for code samples.
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* ---------- COLORS · BRAND ---------- */
+  --color-brand-blue-500: #0A65F2;   /* primary CTAs, active states, links, focus */
+  --color-brand-blue-700: #0055DE;   /* pressed CTAs */
+
+  /* ---------- COLORS · ACCENT · PURPLE (AI intelligence) ---------- */
+  --color-accent-purple:         #7C6AF2;               /* agent names, lesson icons, logo "Of" */
+  --color-accent-purple-muted:   #8B7CF6;               /* secondary purple text */
+  --color-accent-purple-soft-bg: rgba(124,106,242,0.10); /* pill backgrounds */
+  --color-accent-purple-border:  rgba(124,106,242,0.35); /* lesson card border */
+
+  /* ---------- COLORS · SEMANTIC ---------- */
+  --color-success-500: #10B981;      /* "active" / recent dots */
+  --color-success-700: #34D399;      /* success text on dark bg */
+  --color-danger-500:  #EF4444;
+  --color-danger-700:  #F87171;
+
+  /* ---------- COLORS · INK / NEUTRAL ---------- */
+  --color-ink-700:    #353B46;
+  --color-ink-900:    #252B35;
+  --color-neutral-400: #A3A9B2;      /* secondary text, icons */
+  --color-neutral-600: #7C838D;      /* muted icons, captions */
+
+  /* ---------- COLORS · TEXT ---------- */
+  --color-text-primary: #F5F7FA;     /* main body text on dark bg */
+  --color-text-inverse: #050A12;     /* text on bright surfaces */
+
+  /* ---------- COLORS · BACKGROUND ---------- */
+  --color-bg-canvas: #0B0F14;        /* page background, dominant */
+  --color-bg-card:   #11161D;        /* cards, list rows, inputs */
+
+  /* ---------- COLORS · BORDER ---------- */
+  --color-border-default: #1F2630;
+
+  /* ---------- SPACING ---------- */
+  --spacing-2:  8px;
+  --spacing-3:  12px;
+  --spacing-4:  16px;
+  --spacing-6:  24px;
+  --spacing-8:  32px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+
+  /* ---------- RADIUS ---------- */
+  --radius-sm:     8px;
+  --radius-md:     12px;
+  --radius-lg:     16px;
+  --radius-xl:     24px;
+  --radius-bubble: 48px;
+
+  /* ---------- SHADOW ---------- */
+  --shadow-card:    0 1px 3px 0 rgba(5, 10, 18, 0.06);
+  --shadow-popover: 0 8px 24px 0 rgba(5, 10, 18, 0.12);
+  --shadow-focus:   0 0 0 3px rgba(10, 101, 242, 0.40);
+  --shadow-blue-glow: 0 8px 32px 0 rgba(10, 101, 242, 0.12);
+
+  /* ---------- MARKDOWN RENDERER SURFACES (alpha tokens) ---------- */
+  /* Used exclusively in the Flutter chat renderer. Included here for parity. */
+  --color-md-bg-frosted-glass:     rgba(255, 255, 255, 0.04);
+  --color-md-border-frosted-glass: rgba(255, 255, 255, 0.08);
+  --color-md-brand-blue-wash-04:   rgba(10, 101, 242, 0.04);
+  --color-md-brand-blue-wash-08:   rgba(10, 101, 242, 0.08);
+  --color-md-brand-blue-wash-14:   rgba(10, 101, 242, 0.14);
+
+  /* ---------- TYPOGRAPHY ---------- */
+  --font-ui:   "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, "Cascadia Mono", "Consolas", monospace;
+
+  --text-display-xl: 56px;
+  --text-display-xl--line-height: 64px;
+  --text-display-xl--letter-spacing: -0.015em;
+  --text-display-xl--font-weight: 700;
+
+  --text-heading-l: 32px;
+  --text-heading-l--line-height: 40px;
+  --text-heading-l--letter-spacing: -0.005em;
+  --text-heading-l--font-weight: 700;
+
+  --text-heading-m: 24px;
+  --text-heading-m--line-height: 32px;
+  --text-heading-m--letter-spacing: -0.0025em;
+  --text-heading-m--font-weight: 700;
+
+  --text-heading-s: 18px;
+  --text-heading-s--line-height: 24px;
+  --text-heading-s--font-weight: 600;
+
+  --text-body-l: 18px;
+  --text-body-l--line-height: 28px;
+  --text-body-l--font-weight: 400;
+
+  --text-body-m: 16px;
+  --text-body-m--line-height: 24px;
+  --text-body-m--font-weight: 400;
+
+  --text-body-s: 14px;
+  --text-body-s--line-height: 20px;
+  --text-body-s--font-weight: 400;
+
+  --text-label-mono: 13px;
+  --text-label-mono--line-height: 20px;
+  --text-label-mono--font-weight: 500;
+
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--letter-spacing: 0.02em;
+  --text-caption--font-weight: 500;
+}
+
+/* ----------------------------------------------------------------------
+ * Page reset for the AgentsOfMine landing page.
+ * Dark-canvas-first.
+ * ---------------------------------------------------------------------- */
+:root { color-scheme: dark; }
+
+html, body {
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /*
+   * Clip horizontal overflow at the document root.
+   * `overflow-x: clip` (not `hidden`) preserves `position: sticky` for the
+   * Nav and any future sticky behavior, and prevents decorative oversized
+   * SVGs (BubbleTrioMotif at 720px width) from causing rubber-band scroll
+   * on mobile when positioned off-canvas. Supported in all evergreen
+   * browsers since 2022.
+   */
+  overflow-x: clip;
+}
+
+body { min-height: 100dvh; }
+
+.aom-caption {
+  font: var(--text-caption--font-weight) var(--text-caption)/var(--text-caption--line-height) var(--font-ui);
+  letter-spacing: var(--text-caption--letter-spacing);
+  text-transform: uppercase;
+}
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+.aom-rail {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge */
+}
+.aom-rail::-webkit-scrollbar { display: none; }   /* Chromium / Safari */
+
+/* ----------------------------------------------------------------------
+ * Fonts, self-hosted: the blog makes no third-party request.
+ * ---------------------------------------------------------------------- */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../assets/fonts/inter-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../assets/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("../assets/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ----------------------------------------------------------------------
+ * Focus: one ring everywhere (DESIGN.md shadow-focus).
+ * ---------------------------------------------------------------------- */
+:focus { outline: none; }
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--spacing-4);
+  top: var(--spacing-2);
+  z-index: 100;
+  transform: translateY(-200%);
+  padding: var(--spacing-3) var(--spacing-6);
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-blue-500);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.skip-link:focus { transform: translateY(0); }
+
+/* ----------------------------------------------------------------------
+ * Reading column (DESIGN.md "Reading column", "Links in prose",
+ * "Code, commands and tables", "Figures and images").
+ * ---------------------------------------------------------------------- */
+.prose {
+  max-width: 65ch;
+  color: var(--color-text-primary);
+  font: 400 var(--text-body-l)/var(--text-body-l--line-height) var(--font-ui);
+  overflow-wrap: break-word;
+}
+.prose > * + * { margin-top: var(--spacing-6); }
+
+.prose h2 {
+  margin-top: var(--spacing-12);
+  font: 700 var(--text-heading-m)/var(--text-heading-m--line-height) var(--font-ui);
+  letter-spacing: var(--text-heading-m--letter-spacing);
+}
+.prose h3 {
+  margin-top: var(--spacing-8);
+  font: 600 var(--text-heading-s)/var(--text-heading-s--line-height) var(--font-ui);
+}
+.prose h2 + *, .prose h3 + * { margin-top: var(--spacing-4); }
+
+.prose a {
+  color: var(--color-brand-blue-500);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose a:hover { color: var(--color-text-primary); }
+
+.prose ul, .prose ol { padding-left: var(--spacing-6); }
+.prose ul { list-style: disc; }
+.prose ol { list-style: decimal; }
+.prose li + li { margin-top: var(--spacing-2); }
+.prose li > ul, .prose li > ol { margin-top: var(--spacing-2); }
+
+.prose strong { font-weight: 600; }
+
+.prose blockquote {
+  padding-left: var(--spacing-4);
+  border-left: 4px solid var(--color-border-default);
+  color: var(--color-neutral-400);
+}
+
+.prose hr {
+  margin-block: var(--spacing-12);
+  border: 0;
+  border-top: 1px solid var(--color-border-default);
+}
+
+.prose code {
+  padding: 2px var(--spacing-2);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font: 500 var(--text-label-mono)/1 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.prose pre {
+  padding: var(--spacing-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  color: var(--color-text-primary);
+  font: 500 var(--text-label-mono)/var(--text-label-mono--line-height) var(--font-mono);
+  tab-size: 2;
+}
+.prose pre code { padding: 0; background: none; border: 0; font: inherit; overflow-wrap: normal; }
+
+.prose .table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+.prose table { width: 100%; border-collapse: collapse; font: 400 var(--text-body-s)/var(--text-body-s--line-height) var(--font-ui); }
+.prose th {
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--color-bg-card);
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.prose td { padding: var(--spacing-3) var(--spacing-4); vertical-align: top; color: var(--color-neutral-400); }
+.prose td:first-child { color: var(--color-text-primary); }
+.prose tr + tr th, .prose tr + tr td, .prose tbody tr + tr td { border-top: 1px solid var(--color-border-default); }
+.prose thead th { border-bottom: 1px solid var(--color-border-default); }
+
+.prose img, .prose figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+.prose figcaption, .prose .caption {
+  margin-top: var(--spacing-2);
+  color: var(--color-neutral-400);
+  font: 400 var(--text-body-s)/var(--text-body-s--line-height) var(--font-ui);
+}
+
+/* A table caption written as a paragraph right after the table: <p class="caption"> is not
+   available in plain Markdown, so a paragraph that follows a table wrapper is styled as one. */
+.prose .table-wrap + p {
+  margin-top: var(--spacing-2);
+  color: var(--color-neutral-400);
+  font: 400 var(--text-body-s)/var(--text-body-s--line-height) var(--font-ui);
+}
+
+.callout {
+  padding: var(--spacing-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-neutral-400);
+  font: 400 var(--text-body-s)/var(--text-body-s--line-height) var(--font-ui);
+}
+.callout > strong { color: var(--color-text-primary); font-weight: 600; }
+
+/* Flowcharts (DESIGN.md "Figures and images"): inline SVG, colors only through tokens. */
+.flow { display: block; width: 100%; max-width: 360px; height: auto; }
+.flow text { fill: var(--color-text-primary); font: 400 14px var(--font-ui); text-anchor: middle; }
+.flow .mono { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+.flow .note { fill: var(--color-neutral-400); font-size: 12px; }
+.flow .label { fill: var(--color-neutral-400); font-size: 12px; font-weight: 500; }
+.flow .node { fill: var(--color-bg-card); stroke: var(--color-border-default); stroke-width: 1; }
+.flow .node-ask { stroke: var(--color-neutral-400); stroke-width: 1.5; }
+.flow .node-key { stroke: var(--color-brand-blue-500); stroke-width: 1.5; }
+.flow .line { fill: none; stroke: var(--color-neutral-600); stroke-width: 1.5; }
+.flow .line-key { fill: none; stroke: var(--color-brand-blue-500); stroke-width: 1.5; }
+.flow .head { fill: var(--color-neutral-600); }
+.flow .head-key { fill: var(--color-brand-blue-500); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,48 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import Container from "../components/Container.astro";
+import { SITE, url } from "../site.config";
+
+interface Props { title: string; description: string; path: string; type?: "website" | "article"; noindex?: boolean; }
+const { title, description, path, type = "website", noindex = false } = Astro.props;
+const canonical = `${SITE.origin}${url(path)}`;
+const og = `${SITE.origin}${url("/og/default.png")}`;
+const fullTitle = path === "/" ? SITE.name : `${title} | ${SITE.name}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content={SITE.csp} />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    <link rel="icon" type="image/svg+xml" href={url("/logo/logo-mark-dark-color.svg")} />
+    <link rel="icon" type="image/png" sizes="32x32" href={url("/favicon-32.png")} />
+    <link rel="icon" type="image/png" sizes="16x16" href={url("/favicon-16.png")} />
+    <link rel="apple-touch-icon" sizes="180x180" href={url("/apple-touch-icon.png")} />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={og} />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={og} />
+    <meta name="theme-color" content="#0B0F14" />
+  </head>
+  <body class="bg-bg-canvas text-text-primary font-ui antialiased">
+    <a href="#main" class="skip-link">Skip to content</a>
+    <Header />
+    <main id="main" class="py-12 lg:py-16"><Container><slot /></Container></main>
+    <Footer />
+  </body>
+</html>

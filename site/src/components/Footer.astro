@@ -1,0 +1,30 @@
+---
+import AomLogo from "./AomLogo.astro";
+import Container from "./Container.astro";
+import { SITE, url } from "../site.config";
+const year = new Date().getFullYear();
+const col = "text-body-s text-neutral-400 hover:text-text-primary inline-flex items-center min-h-11";
+---
+
+<footer class="border-t border-border-default py-12 mt-16">
+  <Container>
+    <div class="grid md:grid-cols-3 gap-8 mb-8">
+      <div class="flex flex-col gap-3">
+        <AomLogo height={36} id="docs-footer-logo" />
+        <p class="text-body-s text-neutral-600 max-w-xs">Documentation for the open-source collector that reads your AI coding sessions.</p>
+      </div>
+      <nav class="flex flex-col" aria-label="Docs">
+        <p class="aom-caption text-neutral-600 mb-2">Docs</p>
+        <a href={url("/")} class={col}>All pages</a>
+        <a href={url("/about-these-docs/")} class={col}>About these docs</a>
+      </nav>
+      <nav class="flex flex-col" aria-label="Elsewhere">
+        <p class="aom-caption text-neutral-600 mb-2">Elsewhere</p>
+        <a href={SITE.repo} class={col} rel="noopener noreferrer">Source on GitHub <span aria-hidden="true" class="ml-1">↗</span></a>
+        <a href={SITE.product} class={col}>agentsofmine.io</a>
+        <a href={SITE.blog} class={col}>Blog</a>
+      </nav>
+    </div>
+    <div class="pt-6 border-t border-border-default"><p class="text-body-s text-neutral-600">© {year} AgentsOfMine. The collector is MIT-licensed.</p></div>
+  </Container>
+</footer>

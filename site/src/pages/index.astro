@@ -1,0 +1,31 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import { url } from "../site.config";
+import { formatDate, isoDate } from "../lib/format";
+const pages = (await getCollection("docs")).filter((p) => p.data.kind !== "about").sort((a, b) => a.data.order - b.data.order);
+---
+
+<Base title="Collector documentation" description="Reference and guides for the open-source AgentsOfMine collector: where each AI coding agent keeps its sessions, what is uploaded, and how to add an agent." path="/">
+  <section class="max-w-[65ch]">
+    <p class="aom-caption text-neutral-600 mb-3">Documentation</p>
+    <h1 class="text-heading-l lg:text-display-xl text-text-primary">The AgentsOfMine collector, documented</h1>
+    <p class="mt-6 text-body-l text-neutral-400">
+      The collector reads the session files your AI coding agents already write to your disk. These pages say exactly where, what it sends, and how to extend it. Each page names what it was checked against and when.
+    </p>
+  </section>
+  <section class="mt-12 max-w-[65ch]" aria-labelledby="pages">
+    <h2 id="pages" class="text-heading-m text-text-primary mb-6">Pages</h2>
+    <ul>
+      {pages.map((p) => (
+        <li class="py-6 border-b border-border-default first:pt-0">
+          <a href={url(`/${p.data.slug}/`)} class="block group">
+            <h3 class="text-heading-s text-text-primary group-hover:underline underline-offset-4">{p.data.title}</h3>
+            <p class="mt-2 text-body-s text-neutral-400">{p.data.description}</p>
+            <p class="mt-2 text-caption text-neutral-600">Checked <time datetime={isoDate(p.data.verified)}>{formatDate(p.data.verified)}</time></p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>

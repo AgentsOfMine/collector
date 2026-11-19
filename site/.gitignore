@@ -1,0 +1,6 @@
+dist/
+.astro/
+node_modules/
+# The words that must never appear on this public site (one per line). Local only: a public repo must not
+# name them either. `npm run check` fails without it on a developer machine; CI skips that one rule and says so.
+.forbidden-words

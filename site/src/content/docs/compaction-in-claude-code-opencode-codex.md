@@ -74,4 +74,4 @@ The collector uploads user and assistant messages and ignores everything else (c
 - **How good a summary is.** I did not read any summary; I measured only lengths and counts.
 - **Claude Code and Codex behaviour.** Not run, as above.
 - **Other versions.** OpenCode's compaction changed between 1.x and 2.x (the vendor's migration note says so). Everything here is OpenCode 2.3.0.
-- **Whether any of this saves you time or tokens.** I did not measure it.
+- **Whether any of this saves you time or tokens.** I did not measure it. [One person's 100 compactions, measured](https://blog.agentsofmine.io/posts/opencode-compaction-measured/) has the numbers behind the sizes above and the queries to run on your own database.

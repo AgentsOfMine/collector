@@ -68,6 +68,8 @@ Pi writes one JSONL file per session into a folder named after the working direc
 
 On the file I opened, the line types were `session` (first line: `version`, `id`, `timestamp`, `cwd`), `model_change`, `thinking_level_change` and `message`. Messages carry a role of `user`, `assistant` or `toolResult`, and content blocks of type `text`, `toolCall` or `image`. A tool result is a separate message, matched to its call by id. `pi --session-dir` can move the storage; the collector does not read that option.
 
+For turning a session into a readable file, see [Export OpenCode, Codex and Claude sessions to Markdown](https://blog.agentsofmine.io/posts/export-ai-coding-sessions-to-markdown/).
+
 ## What this page does not tell you
 
 - **Formats change.** None of these is a published, versioned contract for readers; the Claude Code vendor says so explicitly. If a field here no longer matches, [open an issue](https://github.com/AgentsOfMine/collector/issues).

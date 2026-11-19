@@ -1,13 +1,13 @@
 /**
  * Wraps the reader-value paragraphs of a page in <div class="takeaway" role="note"> (DESIGN.md "Takeaway block").
- * The Markdown stays plain: a paragraph that starts with a bold "Why this matters.", "What you get.", "Scenario" or "A real session"
+ * The Markdown stays plain: a paragraph that starts with a bold "Why this matters.", "What you get.", "Possible scenario" or "A real session"
  * label is boxed. "Why this matters" and "What you get" that follow each other share one box; a scenario has its own.
  * Only top-level paragraphs are looked at. No dependencies.
  * @returns {(tree: any) => void}
  */
 const GROUPS = [
   { name: "value", labels: [/^why this matters\b/i, /^what you get\b/i] },
-  { name: "scenario", labels: [/^scenario\b/i, /^a real session\b/i] },
+  { name: "scenario", labels: [/^possible scenario\b/i, /^a real session\b/i] },
 ];
 
 const text = (node) => (node.type === "text" ? node.value : (node.children ?? []).map(text).join(""));

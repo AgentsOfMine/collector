@@ -22,7 +22,7 @@ Where the collector looks, on macOS:
 
 - **OpenCode:** `~/.local/share/opencode/opencode.db`, opened read-only.
 - **Claude Code:** `~/.claude/projects/<project>/<session>.jsonl`, one directory deep.
-- **Codex:** every `rollout-*.jsonl` below `~/.codex/sessions/`, which is organised as `YYYY/MM/DD/rollout-<timestamp>-<uuid>.jsonl`.
+- **Codex:** every `rollout-*.jsonl` below `~/.codex/sessions/`, which is organised as `YYYY/MM/DD/rollout-<timestamp>-<uuid>.jsonl`. Files ending in `.jsonl.zst` are not read.
 - **Pi:** every `*.jsonl` below `~/.pi/agent/sessions/`, organised as `--<project>--/<timestamp>_<uuid>.jsonl`.
 
 ## OpenCode
@@ -60,7 +60,7 @@ Codex writes one rollout file per session into a folder per day. Each line has a
 | `response_item` | `payload.type` is `message`, `reasoning`, `function_call`, `function_call_output` or `additional_tools` | `message` with role user or assistant, as text only; `function_call` named `exec_command`, to estimate changed files |
 | `event_msg`, `token_usage_record`, `world_state` | progress, token counts, state | no |
 
-Codex also keeps a SQLite index, `~/.codex/state_5.sqlite`, with a `threads` table. The collector does not read it. On my machine the index listed 199 threads and only 10 of the rollout files they point to existed on disk, one of them under `archived_sessions/`. I do not know why the others are gone, and the collector can only upload the files that exist when it runs. The one file in `archived_sessions/` is compressed (`.jsonl.zst`), and the collector does not look in that folder at all.
+Codex also keeps a SQLite index, `~/.codex/state_5.sqlite`, with a `threads` table. The collector does not read it. Codex compresses older rollout files with zstd and renames them to `rollout-….jsonl.zst`, and the index keeps the old `.jsonl` path. On my machine the index listed 199 threads. The stored path existed for 10 of them; for the other 189 the same path with `.zst` added existed, and none was missing. The collector accepts only file names ending in `.jsonl`, so it does not read the compressed ones, and it does not look in `archived_sessions/` at all. I did not check when or why Codex compresses a file.
 
 ## Pi
 

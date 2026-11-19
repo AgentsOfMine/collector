@@ -357,7 +357,9 @@ html { scroll-behavior: smooth; }
 .callout > strong { color: var(--color-text-primary); font-weight: 600; }
 
 /* Flowcharts (DESIGN.md "Figures and images"): inline SVG, colors only through tokens. */
-.flow { display: block; width: 100%; max-width: 360px; height: auto; }
+.flow { display: block; margin-inline: auto; width: 100%; max-width: 360px; height: auto; }
+.flow-sm { max-width: 320px; }
+.prose figure:has(> .flow) figcaption { text-align: center; }
 .flow text { fill: var(--color-text-primary); font: 400 14px var(--font-ui); text-anchor: middle; }
 .flow .mono { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
 .flow .note { fill: var(--color-neutral-400); font-size: 12px; }

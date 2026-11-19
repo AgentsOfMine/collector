@@ -356,6 +356,19 @@ html { scroll-behavior: smooth; }
 }
 .callout > strong { color: var(--color-text-primary); font-weight: 600; }
 
+/* Takeaway block (DESIGN.md "Takeaway block"): the reader-value paragraphs, made by src/lib/rehype-takeaway.mjs. */
+.prose .takeaway {
+  padding: var(--spacing-4);
+  background: var(--color-md-brand-blue-wash-08);
+  border: 1px solid var(--color-md-brand-blue-wash-14);
+  border-left: 4px solid var(--color-brand-blue-500);
+  border-radius: var(--radius-md);
+}
+.prose .takeaway > * + * { margin-top: var(--spacing-3); }
+@media (min-width: 768px) {
+  .prose .takeaway { padding: var(--spacing-6); }
+}
+
 /* Flowcharts (DESIGN.md "Figures and images"): inline SVG, colors only through tokens. */
 .flow { display: block; margin-inline: auto; width: 100%; max-width: 360px; height: auto; }
 .flow-sm { max-width: 320px; }

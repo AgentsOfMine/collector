@@ -4,6 +4,8 @@
 
 Works with any editor or terminal — Claude Code CLI, OpenCode CLI, Cursor, Zed, or any future agent.
 
+**Documentation:** [agentsofmine.github.io/collector](https://agentsofmine.github.io/collector/): where each agent keeps its sessions, exactly what the collector reads, redacts and uploads, how to add an agent, and what to do about Claude Code deleting sessions after 30 days.
+
 ---
 
 ## Requirements

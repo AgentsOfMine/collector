@@ -11,7 +11,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview --port 4399",
-    "check": "astro build && node scripts/check.mjs && node scripts/check-drift.mjs",
+    "check": "astro build && node scripts/check.mjs && node scripts/check-drift.mjs && node scripts/test-highlight.mjs",
     "csp": "node scripts/csp-smoke.mjs",
     "prove": "scripts/prove-checks.sh",
     "og": "node scripts/make-og.mjs",

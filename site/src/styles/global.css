@@ -306,6 +306,12 @@ html { scroll-behavior: smooth; }
 }
 .prose pre code { padding: 0; background: none; border: 0; font: inherit; overflow-wrap: normal; }
 
+/* Code highlighting (DESIGN.md "Code highlighting"): existing tokens only, made by src/lib/rehype-highlight.mjs. */
+.prose pre .tok-kw { color: var(--color-accent-purple-muted); }
+.prose pre .tok-str { color: var(--color-success-700); }
+.prose pre .tok-num { color: var(--color-danger-700); }
+.prose pre .tok-com { color: var(--color-neutral-600); }
+
 .prose .table-wrap {
   overflow-x: auto;
   max-width: 100%;

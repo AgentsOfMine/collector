@@ -3,7 +3,7 @@
 // a real headless Chrome. Fails on any CSP violation, any failed request, or any page that makes a request
 // outside localhost. The unit tests in infra/ prove the policy is strict; this proves the site still works under it.
 //   npm run csp        (after npm run build)
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -31,16 +31,21 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(4401, "127.0.0.1", r));
 
+// Find a browser: CHROME_BIN, then the Playwright headless shell (macOS), then Chrome or Chromium on the PATH
+// (GitHub's Ubuntu runners have Google Chrome). A full Chrome needs --headless=new; the headless shell is always headless.
+const which = (n) => { try { return execFileSync("which", [n], { encoding: "utf8" }).trim() || null; } catch { return null; } };
 const caches = join(homedir(), "Library/Caches/ms-playwright");
-const shells = readdirSync(caches).filter((n) => n.startsWith("chromium_headless_shell-")).sort().reverse();
-const chrome = shells.map((n) => join(caches, n, "chrome-headless-shell-mac-arm64/chrome-headless-shell")).find(existsSync);
-if (!chrome) { console.error("No headless Chrome under ~/Library/Caches/ms-playwright"); process.exit(1); }
+const shells = existsSync(caches) ? readdirSync(caches).filter((n) => n.startsWith("chromium_headless_shell-")).sort().reverse() : [];
+const shell = shells.map((n) => join(caches, n, "chrome-headless-shell-mac-arm64/chrome-headless-shell")).find(existsSync);
+const chrome = (process.env.CHROME_BIN && existsSync(process.env.CHROME_BIN) ? process.env.CHROME_BIN : null) ?? shell ?? which("google-chrome") ?? which("google-chrome-stable") ?? which("chromium") ?? which("chromium-browser");
+const isShell = chrome === shell;
+if (!chrome) { console.error("No Chrome found. Set CHROME_BIN, or install Chrome or Chromium."); process.exit(1); }
 
 let failures = 0;
 if (pages.length === 0) { console.error("FAILED: no pages found in dist/. Run the build first; a test that checked nothing has not passed."); server.close(); process.exit(1); }
 for (const p of pages) {
   const out = await new Promise((done) => {
-    const c = spawn(chrome, ["--disable-gpu", "--no-sandbox", "--enable-logging=stderr", "--v=0", "--virtual-time-budget=4000", "--dump-dom", `http://127.0.0.1:4401${p}`], { stdio: ["ignore", "pipe", "pipe"] });
+    const c = spawn(chrome, [...(isShell ? [] : ["--headless=new"]), "--disable-gpu", "--no-sandbox", "--enable-logging=stderr", "--v=0", "--virtual-time-budget=4000", "--dump-dom", `http://127.0.0.1:4401${p}`], { stdio: ["ignore", "pipe", "pipe"] });
     let err = "", dom = "";
     c.stdout.on("data", (d) => (dom += d));
     c.stderr.on("data", (d) => (err += d));

@@ -4,7 +4,7 @@ description: Claude Code 2.1.329 resumes a session by id from any folder; 2.1.17
 slug: resume-claude-code-session-from-another-folder
 order: 7
 verified: 2026-11-20
-checkedAgainst: "Claude Code 2.1.173 and 2.1.329 (npm latest on 20 November 2026), Codex CLI 0.170.0, OpenCode 2.3.2, all on macOS in throwaway folders with an isolated config directory; the vendor's sessions page and changelog read on 20 November 2026."
+checkedAgainst: "Claude Code 2.1.173 and 2.1.329 (npm latest on 20 November 2026), Codex CLI 0.170.0, OpenCode 2.3.2, all on macOS in throwaway folders with an isolated config directory; the vendor's sessions page and changelog read on 20 November 2026; the script's shell parts run in an Ubuntu 24.04 container on 20 November 2026 (Claude Code not run there); Windows from documentation only, not run."
 kind: guide
 ---
 **Yes, on a current version.** In Claude Code 2.1.329, `claude --resume <session-id>` works from any folder. In 2.1.173 the same command failed with "No conversation found", and the way around it was to pass the path of the transcript file instead. Check your version first: that is the whole difference.
@@ -88,10 +88,17 @@ cd ~ && rm -r "$T" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/projects/*aom-resume-te
 
 On 2.1.173 it printed "No conversation found with session ID ...". On 2.1.329 it answered with the first message. I ran it with `CLAUDE_CONFIG_DIR` set to a temporary folder, not against my real storage (which was empty on this Mac). It needs `jq`.
 
+## Windows and Linux
+
+**Tested on Linux for the shell parts only; Windows documented or assumed, not run.** I ran the `mktemp` line with its template under `$HOME`, the two `mkdir` calls and the `rm -r` on Ubuntu 24.04 (container, 20 November 2026): they worked (tested). I did not run `claude` there, so the version table above is macOS only.
+
+- **Linux.** The script needs `jq`, which Debian and Ubuntu ship (`apt-get install jq`, documented: the `jq` download page). Claude Code supports Ubuntu 20.04 and later (documented: the vendor's setup page).
+- **Windows.** The script is `sh`, and I wrote no PowerShell form. Inside WSL the vendor has you install and run Claude Code in the WSL terminal (documented), so I assume the script runs there unchanged and the session files sit in that distribution's Linux home. The storage folder name replaces every non-alphanumeric character with `-` (documented: the vendor's sessions page, which also says names over 200 characters are truncated and given a hash), so I assume a project in `C:\Users\me\proj` is stored under `C--Users-me-proj` (my reading of the rule, not run). Where the other agents keep sessions: [session formats](/session-formats/#windows-and-linux).
+
 ## What this page does not cover
 
 - **Interactive use.** Every run was non-interactive (`claude -p`, `codex exec`, `opencode run`). The picker, its `Ctrl+W` and `Ctrl+A` widening, and the copied `cd` command the vendor page describes were not tested, and `/cd` was not run.
-- **Versions.** Two Claude Code versions, one Codex version and one OpenCode version, one run per cell, on macOS only. I do not know which release between 2.1.173 and 2.1.329 changed the id lookup.
+- **Versions.** Two Claude Code versions, one Codex version and one OpenCode version, one run per cell, on macOS only (see [Windows and Linux](#windows-and-linux)). I do not know which release between 2.1.173 and 2.1.329 changed the id lookup.
 - **File edits.** I tested where a shell command runs, not where a file edit lands. The old conversation names paths in folder A, so an edit by a relative or remembered path may still go to A.
 - **Codex instruction file.** I did not test which `AGENTS.md` a resumed Codex session reads.
 - **OpenCode's move route.** OpenCode's API reference lists a route that moves a session to another directory when I read it on 19 November. I did not run it.

@@ -3,8 +3,8 @@ title: Add support for a new AI coding agent
 description: The four steps, the adapter interface, how to choose a cursor, and the checklist an adapter has to pass to be accepted into the AgentsOfMine collector.
 slug: add-an-agent
 order: 3
-verified: 2026-11-19
-checkedAgainst: "Collector 0.1.3, commit abe3f56: the adapter interface, the provider registry and the existing adapters read on 19 November 2026. The steps were not exercised by building a new adapter for this page."
+verified: 2026-11-20
+checkedAgainst: "Collector 0.1.3, commit abe3f56: the adapter interface, the provider registry and the existing adapters read on 19 November 2026. The steps were not exercised by building a new adapter for this page. `npm install` and `npm run check` run in an Ubuntu 24.04 container on 20 November 2026 (commit 2a03ae9); Windows from the collector's notes only, not run."
 kind: guide
 ---
 
@@ -98,3 +98,7 @@ npm run check
 ```
 
 `npm run check` builds, lints and runs the tests. Then run `aom sync` against your own sessions and look at the result in the app before you open a pull request. Describe in the pull request which agent version you tested against; the formats move.
+
+## Windows and Linux
+
+**Tested on Linux, not run on Windows.** In an Ubuntu 24.04 container (Node 22.23.5, 20 November 2026), `npm install` worked, and `npm run check` failed until `libsecret-1-0` was installed, then passed all 459 tests (tested). The README lists macOS and Linux as supported and Windows as not supported (documented by the collector), and its cross-platform notes list the open Windows work, such as unverified session paths and keychain behaviour. So on Windows, build and run the checks in WSL (assumed) and say in your pull request which system you tested on.

@@ -3,8 +3,8 @@ title: What the AgentsOfMine collector reads, redacts and uploads
 description: Exactly what the AgentsOfMine collector reads from disk, what it removes before upload, what it sends and how often, and how to check each claim in the source.
 slug: what-the-collector-sends
 order: 2
-verified: 2026-11-19
-checkedAgainst: "Collector 0.1.3, commit abe3f56 (source read and the commands below run on 19 November 2026)."
+verified: 2026-11-20
+checkedAgainst: "Collector 0.1.3, commit abe3f56 (source read and the commands below run on 19 November 2026 on macOS; the install and the first check also run in an Ubuntu 24.04 container on 20 November 2026, commit 2a03ae9; Windows from the collector's notes and Node.js documentation only, not run)."
 kind: reference
 ---
 
@@ -88,7 +88,15 @@ A session is sent as: its id, the agent's name, the project (path, and the Git r
 - **Where to.** `https://agentsofmine.io/sync`, over HTTPS. `AOM_SYNC_URL` changes it.
 - **How.** A `POST`, five sessions at a time. Network errors and `429`, `500`, `502`, `503` and `504` are retried after 100, 200 and 400 milliseconds; other errors are not.
 - **When.** `aom sync` sends once. `aom start` watches the session folders and syncs about five seconds after the last change.
-- **Who.** The device token from `aom pair` identifies your computer. It is stored in your operating system's keychain, with a copy in `~/.agentsofmine/config.json` that only your user can read.
+- **Who.** The device token from `aom pair` identifies your computer. It is stored in your operating system's keychain, with a copy in `~/.agentsofmine/config.json` that only your user can read (on Unix; see [Windows and Linux](#windows-and-linux)).
+
+## Windows and Linux
+
+**Tested on Linux, nothing run on Windows.** On 20 November 2026 I ran the install and the first check in an Ubuntu 24.04 container (Node 22.23.5). Labels: *tested*, *documented* (a vendor page read that day) and *assumed* (my reading).
+
+- **Linux.** `npm install -g agentsofmine` succeeded, but `aom --version` failed with `libsecret-1.so.0: cannot open shared object file` until I installed `libsecret-1-0`; then it printed 0.1.3 (tested). In a clone at commit `2a03ae9`, `npm run check` failed the same way, and passed (459 tests) once the library was there (tested). Storing the token also needs a running Secret Service; the README says a headless server without one fails to store it (documented by the collector; not run).
+- **The check command.** `grep` is not on Windows. `git grep -nE "writeFile|appendFile|createWriteStream" -- src/` printed the same eight lines as `grep -rnE` on macOS and on Ubuntu (tested; Git for Windows ships `git grep`: assumed).
+- **Windows.** The README says it is not supported. The state folder uses `os.homedir()` and so should be `%USERPROFILE%\.agentsofmine` (assumed, from the collector's cross-platform notes). The `0o600` mode on `config.json` is not enforced: Node.js documents that on Windows only the write permission can be changed (documented: the `fs` page). So a token copy there would have no owner-only mode (assumed); the collector's notes call this low priority because the keychain is the main store.
 
 ## What it does not do
 

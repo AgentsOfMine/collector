@@ -3,8 +3,8 @@ title: "Claude Code deletes sessions after 30 days: how to keep them"
 description: Claude Code removes session transcripts older than 30 days by default. What goes, what stays, three ways to keep them, and where the setting has failed.
 slug: claude-code-deletes-sessions-after-30-days
 order: 4
-verified: 2026-11-19
-checkedAgainst: "The vendor's documentation and changelog read on 19 November 2026; commands run on throwaway folders on macOS; collector 0.1.3, commit abe3f56. The deletion itself was not reproduced."
+verified: 2026-11-20
+checkedAgainst: "The vendor's documentation and changelog read on 19 November 2026; commands run on throwaway folders on macOS and in an Ubuntu 24.04 container on 20 November 2026; Windows from Microsoft's and the vendors' documentation only, not run; collector 0.1.3, commit abe3f56. The deletion itself was not reproduced."
 kind: guide
 ---
 **Yes.** By default Claude Code deletes session transcripts that are older than 30 days, in the background and without a message. To keep them, raise `cleanupPeriodDays` in `~/.claude/settings.json`, or copy the files somewhere Claude Code does not touch. Two cautions: the setting has not always been honoured (see below), and a copy kept inside `~/.claude` is not a safe copy.
@@ -103,10 +103,27 @@ The changelog lists related fixes: in 2.1.101, `--setting-sources` without `user
 
 The practical conclusion is the one in option 2: do not depend on one setting for sessions you care about. Keep a copy outside `~/.claude`.
 
+## Windows and Linux
+
+**Tested on Linux, documented for Windows, nothing run on Windows.** I ran the commands above on Ubuntu 24.04 (arm64, in a container) on 20 November 2026, without Claude Code, so the sweep itself was not run there. Labels: *tested*, *documented* (the vendor's page, read on 20 November 2026) and *assumed* (my reading).
+
+- **Linux.** The `find` line and both `rsync` runs behaved as on macOS: the backup kept a deleted file, and `--delete` removed it (tested; GNU find 4.9.0, rsync 3.2.7). `npm install -g agentsofmine` worked on Node 22.23.5, but `aom --version` failed with `libsecret-1.so.0: cannot open shared object file` until I installed `libsecret-1-0` (tested). The collector's README adds that storing the token needs a running Secret Service, which headless servers often lack (documented; I did not run `aom pair`).
+- **Windows, paths.** `~/.claude` is `%USERPROFILE%\.claude`, and `CLAUDE_CONFIG_DIR` moves it (documented: the vendor's `.claude` directory page). The collector's README says Windows is not supported, so option 3 does not apply there.
+- **Windows, copy.** `robocopy "%USERPROFILE%\.claude\projects" "%USERPROFILE%\claude-sessions-backup\projects" /E` is my assumed counterpart of `rsync -a`. Microsoft documents `/E` as copying subdirectories, empty ones included, and `/MIR` as `/E` plus `/PURGE`, which deletes destination files that left the source, like `--delete`. Do not use `/MIR` or `/PURGE` for this.
+- **Windows, count.** This is my PowerShell form of the `find` line:
+
+  ```powershell
+  (Get-ChildItem "$env:USERPROFILE\.claude\projects" -Recurse -Depth 1 -Filter *.jsonl |
+    Where-Object LastWriteTime -lt (Get-Date).AddDays(-21) | Measure-Object).Count
+  ```
+
+  I ran it in PowerShell 7.7.0 on Ubuntu, with `$env:HOME` for `$env:USERPROFILE`, not on Windows. It says 21, not 20, because `find -mtime +20` rounds ages down to whole days and lists files at least 21 days old (tested on macOS and Ubuntu: a file 20.5 days old was not listed).
+- **WSL.** The vendor's setup page has you run the Linux installer inside the WSL terminal (documented), so I assume the files sit in that distribution's Linux home and the Linux commands apply there.
+
 ## What this page does not cover
 
 - **I did not reproduce the sweep.** I tried it in an isolated directory with Claude Code 2.1.173; it exited with "Not logged in", so no session started and the sweep never ran. The deletion behaviour above comes from the vendor's documentation and the maintainer-associated test, not from my run.
 - **Versions.** Several changelog entries are newer than the 2.1.173 on the machine I used. Behaviour may differ on yours.
-- **Windows and Linux.** Paths and commands were checked on macOS only.
+- **Windows and Linux.** Nothing was run on Windows, and Linux ran in a container without Claude Code. See [Windows and Linux](#windows-and-linux).
 - **Other agents.** Codex, OpenCode and Pi keep sessions elsewhere; see the [session formats page](/session-formats/).
 

@@ -3,8 +3,8 @@ title: Compact a coding session without losing the thread
 description: What /compact keeps in Claude Code, OpenCode and Codex, which can compact part of a session, what to set, and what the open-source AgentsOfMine collector reads.
 slug: compaction-in-claude-code-opencode-codex
 order: 6
-verified: 2026-11-19
-checkedAgainst: "OpenCode 2.3.0 run on copies and a private server; Codex source at commit 6eea328 and rollouts written by 0.153 to 0.169, read; Claude Code from the vendor's documentation fetched 19 November 2026, not run (installed 2.1.173, newest 2.1.328); collector 0.1.3, commit cfb2507."
+verified: 2026-11-20
+checkedAgainst: "OpenCode 2.3.0 run on copies and a private server; Codex source at commit 6eea328 and rollouts written by 0.153 to 0.169, read; Claude Code from the vendor's documentation fetched 19 November 2026, not run (installed 2.1.173, newest 2.1.328); collector 0.1.3, commit cfb2507; the `jq` filter in step 4 run on a made-up export in an Ubuntu 24.04 container on 20 November 2026; Windows from Microsoft's documentation, not run."
 kind: guide
 ---
 
@@ -84,9 +84,17 @@ I did not test any of these on Claude Code or Codex.
 
 The AgentsOfMine collector is an open-source program that reads the session files your coding agents write and uploads a copy to your private workspace. It uploads user and assistant messages and ignores everything else (collector 0.1.3, commit cfb2507). For OpenCode that means the `compaction` row and its summary are not uploaded, and the earlier messages, which stay in the table, are. For Codex a `compacted` line is not a message, so the summary is skipped. For Claude Code only lines with `message.role` `user` or `assistant` are kept; I found no real transcript on this machine to check for a separate summary record. So an uploaded session shows the conversation as it happened, not the shortened context the model worked from. The collector has no code that mentions compaction.
 
+## Windows and Linux
+
+**Tested on Linux for the `jq` filter only; Windows documented or assumed, not run.** The filter in step 4 gave the same result on Ubuntu 24.04 (jq 1.7, a made-up export of 36 messages: 15 left after the cut, tested). I did not run `opencode` there.
+
+- **Linux.** `jq` is in the Debian and Ubuntu repositories (documented: the `jq` download page).
+- **Windows.** The `jq` page lists `winget install jqlang.jq`, Scoop, Chocolatey and standalone executables (documented). PowerShell parses arguments before a native program sees them, and quotes inside a filter are easy to lose (documented in general: Microsoft's `about_Parsing` page; I did not try this filter there). So put the filter in a file and run `jq -f cut.jq full.json > edited.json` (assumed). If you need the output as UTF-8 without a byte-order mark, use PowerShell 7, which defaults to that (documented: `about_Character_Encoding`); the Windows PowerShell 5.1 pages I read disagree about what `>` writes, so I state nothing about it. `opencode` itself: the V1 docs recommend WSL on Windows (documented, and marked as V1), so I assume the step-4 commands run there unchanged.
+
 ## What this page does not tell you
 
 - **How good a summary is.** I did not read any summary; I measured only lengths and counts.
 - **Claude Code and Codex behaviour.** Not run, as above.
+- **Windows and Linux.** `opencode` was not run on either; see [Windows and Linux](#windows-and-linux).
 - **Other versions.** OpenCode's compaction changed between 1.x and 2.x (the vendor's migration note says so). Everything here is OpenCode 2.3.0.
 - **Whether any of this saves you time or tokens.** I did not measure it. [One person's 100 compactions, measured](https://blog.agentsofmine.io/posts/opencode-compaction-measured/) has the numbers behind the sizes above and the queries to run on your own database.

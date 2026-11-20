@@ -3,14 +3,14 @@ title: Where AI coding agents keep their sessions
 description: Paths, file formats and the fields the AgentsOfMine collector reads for OpenCode, Claude Code, Codex and Pi, with the version each was checked against.
 slug: session-formats
 order: 1
-verified: 2026-11-19
-checkedAgainst: "OpenCode 2.3.0, Codex rollout files written by 0.169.0-alpha.11.1 and Pi 0.79.1, read on one macOS machine; Claude Code from the vendor's documentation (not verifiable on that machine); collector 0.1.3, commit abe3f56."
+verified: 2026-11-20
+checkedAgainst: "OpenCode 2.3.0, Codex rollout files written by 0.169.0-alpha.11.1 and Pi 0.79.1, read on one macOS machine; Claude Code from the vendor's documentation (not verifiable on that machine); collector 0.1.3, commit abe3f56. Windows and Linux paths from the vendors' documentation and issue trackers and from the collector's source, read on 20 November 2026 and not run."
 kind: reference
 ---
 
 **Why this matters.** If you write a tool that reads your own sessions (a backup, an export, a viewer), or you wonder why one stopped showing new ones, you need to know where each agent keeps them and in what shape. This page gives you that for four agents, with the version each was checked against.
 
-The AgentsOfMine collector, an open-source program that uploads a copy of your coding sessions to your private workspace, reads files your agents already write. This page says where they are, what shape they have, and which fields the collector uses. Paths are for **macOS**; I did not check Windows or Linux.
+The AgentsOfMine collector, an open-source program that uploads a copy of your coding sessions to your private workspace, reads files your agents already write. This page says where they are, what shape they have, and which fields the collector uses. Paths in the lists are for **macOS**, the only system I ran anything on. [Windows and Linux](#windows-and-linux) has what the vendors document for them, which I did not run.
 
 | | OpenCode | Claude Code | Codex | Pi |
 |---|---|---|---|---|
@@ -84,8 +84,22 @@ On the file I opened, the line types were `session` (first line: `version`, `id`
 
 For turning a session into a readable file, see [Export OpenCode, Codex and Claude sessions to Markdown](https://blog.agentsofmine.io/posts/export-ai-coding-sessions-to-markdown/).
 
+## Windows and Linux
+
+**Assumed, not tested.** I ran nothing on Windows or Linux. This section comes from each vendor's documentation and issue tracker and from the collector's source, read on 20 November 2026. Each line says where it comes from: *documented* is the vendor's own page, *reported* is somebody's issue or article, *assumed* is my reading of a rule. The only lines I ran are the OpenCode override commands, on macOS.
+
+**The short version.** On Linux, expect every path above unchanged. On Windows, the vendors put the same folders under the user profile (`%USERPROFILE%`, for example `C:\Users\<you>`) with the same names. Two things differ: the project folder names also replace `\` and `:`, and a tool run inside WSL keeps its data in the Linux home of its distribution.
+
+- **OpenCode.** Linux: the same as macOS (documented: the vendor's troubleshooting text lists `~/.local/share/opencode/` for "macOS/Linux"). Windows: `%USERPROFILE%\.local\share\opencode\opencode.db`, which the same text tells you to open (documented, in the V1 docs source). Two reports agree: an issue in another tool's tracker (July 2026) puts the database at `C:\Users\<name>\.local\share\opencode\` on OpenCode 1.17.13, and a forensics write-up confirms it on Windows Server 2025 with 1.18.26. Both are OpenCode 1.x; I tested 2.3.2. A January 2026 request that OpenCode follow Windows folder conventions was closed, and I did not find out whether it changed anything. Two settings move the database. On macOS with 2.3.2, `opencode debug paths db` printed the default path, then `<XDG_DATA_HOME>/opencode/opencode.db` with that variable set, then the exact file given in `OPENCODE_DB` (tested). The `opencode db path` command from the V1 docs does not exist in 2.3.2: it printed the general help.
+- **Claude Code.** Linux: `~/.claude/projects/<project>/<session>.jsonl`, as on macOS (documented). Windows: `~/.claude` resolves to `%USERPROFILE%\.claude` (documented, the vendor's `.claude` directory page). `CLAUDE_CONFIG_DIR` moves the whole folder (documented). The project folder name replaces every character that is not a letter or a digit with `-` (documented), so `C:\Users\me\proj` should become `C--Users-me-proj` (assumed: I applied the rule by hand). The vendor lists Windows 10 1809 or later, Ubuntu 20.04 or later, Debian 10 or later and Alpine 3.19 or later, and says the installer also covers WSL (documented).
+- **Codex.** `CODEX_HOME`, default `~/.codex` (documented), so Linux matches macOS. On Windows that is `%USERPROFILE%\.codex`: the vendor's Windows setup page uses `C:\Users\alice\.codex` as its example `CODEX_HOME` (documented as an example), and an open report from July 2026 says the Windows desktop app keeps its data there and ignores `CODEX_HOME`, while the command-line tool honours it (reported). If that is still true, the app and the command line can end up in different folders once you set the variable (assumed). The `sessions/YYYY/MM/DD/` layout is not documented per system; I assume it is the same.
+- **Pi.** `~/.pi/agent/sessions/`, grouped by working directory (documented). On Windows, `%USERPROFILE%\.pi\agent\` comes from a third-party install guide (reported); I did not find the path on the vendor's own Windows page. The vendor's session-format page says the folder name is the working directory with the leading separator removed and `/`, `\` and `:` replaced by `-` (documented), so `C:\Users\me\proj` should become `--C--Users-me-proj--` (assumed: rule applied by hand). `PI_CODING_AGENT_SESSION_DIR`, `--session-dir` and the `sessionDir` setting move the sessions, and `PI_CODING_AGENT_DIR` moves the configuration folder (documented). Pi runs natively on Windows or inside WSL (documented).
+- **WSL.** A tool installed inside WSL uses the Linux environment of that distribution (documented for Pi, assumed for the others), so its sessions sit in that distribution's Linux home, not under `%USERPROFILE%`. A Windows program that only looks under `%USERPROFILE%` will not see them (assumed).
+- **The collector.** In its source, each path is the home directory plus the Unix-style names above, and it reads none of `XDG_DATA_HOME`, `OPENCODE_DB`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME` or `PI_CODING_AGENT_SESSION_DIR` (searched at commit 897f7db; the path code is unchanged since abe3f56). Its README lists macOS and Linux as supported, says Windows is not supported, and says Linux has not been run end to end. So on Linux with default settings it should read the paths above (assumed). On Windows the folders the vendors document match the ones its path code would build (assumed), so paths are not what blocks it; the project's [cross-platform note](https://github.com/AgentsOfMine/collector/blob/main/docs/CROSS_PLATFORM.md) lists other open items, such as secret storage and shutdown signals. If you move a folder with one of the variables above, it will not see it.
+
 ## What this page does not tell you
 
 - **Formats change.** None of these is a published, versioned contract for readers; the Claude Code vendor says so explicitly. If a field here no longer matches, [open an issue](https://github.com/AgentsOfMine/collector/issues).
 - **Only what exists on disk.** If an agent or you deleted a session file, there is nothing to read.
 - **One machine.** The key names and counts above come from one person's install.
+- **Windows and Linux.** Nothing was run there. The section above is documentation and reports, with the version each one was about. A Windows report from OpenCode 1.x does not prove 2.x.

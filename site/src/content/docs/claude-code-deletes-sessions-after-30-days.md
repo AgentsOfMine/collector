@@ -25,7 +25,7 @@ Table: who gains what, **my reasoning, not measured.** I did not measure time sa
 
 ## What is deleted, and when
 
-The [Claude Code documentation](https://code.claude.com/docs/en/claude-directory#cleaned-up-automatically) says a background sweep runs after a session starts and deletes files older than `cleanupPeriodDays`. The default is 30, the minimum is 1, and `0` is rejected. The sweep shows nothing: an old session simply stops appearing in `/resume`.
+The [Claude Code documentation](https://code.claude.com/docs/en/claude-directory#cleaned-up-automatically) says a background sweep runs after a session starts and deletes files older than `cleanupPeriodDays`. The default is 30, the minimum is 1, and `0` is rejected. The sweep shows nothing: an old session simply stops appearing in `/resume`. A session can also be missing from the list only because you are in a different folder, and then it is not deleted: see [resuming a session from another folder](/resume-claude-code-session-from-another-folder/).
 
 | Under `~/.claude/` | What it is | Swept? |
 |---|---|---|

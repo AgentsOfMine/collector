@@ -53,7 +53,7 @@ The vendor says `OPENCODE_DB` can move the database. The collector does not read
 
 ## Claude Code
 
-Claude Code writes one JSONL file per session under `~/.claude/projects/<project>/`, where `<project>` is the working directory with each character that is not a letter or digit replaced by `-` (the vendor's description). The vendor also says the line format is internal and changes between versions, so a reader can break on any release.
+Claude Code writes one JSONL file per session under `~/.claude/projects/<project>/`, where `<project>` is the working directory with each character that is not a letter or digit replaced by `-` (the vendor's description). The vendor also says the line format is internal and changes between versions, so a reader can break on any release. Because the folder name comes from the working directory, a session started in another folder is stored under another name; [how to resume one from a different folder](/resume-claude-code-session-from-another-folder/) was tested on two Claude Code versions.
 
 **Not checked here.** On the machine used for this page, `~/.claude/projects/` was empty, so I could not open a real Claude Code session file. What follows is what the collector's code and tests read:
 

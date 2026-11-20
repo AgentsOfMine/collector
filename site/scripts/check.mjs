@@ -91,6 +91,7 @@ const byUrl = new Map(
 );
 const hasFile = (u) => existsSync(join(DIST, u.replace(/^\//, "")));
 
+const canonOf = (html) => html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1];
 const attr = (tag, name) => tag.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, "i"))?.[1];
 
 for (const f of pages) {
@@ -120,6 +121,14 @@ for (const f of pages) {
 
   // 5. Page basics.
   if (!/<html[^>]*\blang="en"/i.test(html)) fail("lang", where, 'missing <html lang="en">');
+  // Bing's ownership tag: only on the home page, once, and only in its exact shape (32 upper-case hex characters).
+  const bingTags = html.match(/<meta\b[^>]*name="msvalidate\.01"[^>]*>/gi) ?? [];
+  const isHome = canonOf(html) === `${ORIGIN}${BASE}/`;
+  if (bingTags.length > 1) fail("verification-tag", where, `${bingTags.length} msvalidate.01 tags (one at most)`);
+  for (const tag of bingTags) {
+    if (!isHome) fail("verification-tag", where, "msvalidate.01 outside the home page");
+    if (!/^<meta name="msvalidate\.01" content="[0-9A-F]{32}"\s*\/?>$/.test(tag)) fail("verification-tag", where, `unexpected shape: ${tag.slice(0, 80)}`);
+  }
   const h1 = html.match(/<h1\b/gi)?.length ?? 0;
   if (h1 !== 1) fail("h1", where, `${h1} <h1> (must be exactly 1)`);
   const canon = html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1];

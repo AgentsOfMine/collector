@@ -5,6 +5,12 @@ export const SITE = {
   base: "/collector",
   product: "https://agentsofmine.io",
   repo: "https://github.com/AgentsOfMine/collector",
+  /**
+   * Bing Webmaster Tools ownership code (the content of <meta name="msvalidate.01">). It proves ownership only;
+   * it sets no cookie and loads nothing. It is written on the home page only, which is the address registered in
+   * Bing, and scripts/check.mjs accepts this one tag in exactly this shape (rule "verification-tag").
+   */
+  bingVerification: "ACCB16504198D624E3BA7AC67F124245",
   blog: "https://blog.agentsofmine.io",
   /**
    * The Content-Security-Policy, as a <meta> tag: GitHub Pages cannot send response headers.

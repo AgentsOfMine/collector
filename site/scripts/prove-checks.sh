@@ -103,6 +103,9 @@ t "a provider login appears in the source" "[provider-login]" check "printf '\n/
 t "a fake Search Console file with the wrong content is read as a page" "[h1]" check "printf 'hello' > public/google1111111111111111.html"
 t "a Search Console file whose content names another file is read as a page" "[h1]" check "printf 'google-site-verification: other.html' > public/google2222222222222222.html"
 
+t "a Bing tag with a code of the wrong shape is refused" "[verification-tag]" check "sed -i '' 's/content={SITE.bingVerification}/content=\"not-a-code\"/' src/layouts/Base.astro"
+t "a Bing tag on every page, not only the home page, is refused" "[verification-tag]" check "sed -i '' 's/{path === \"\/\" \&\& <meta name=\"msvalidate.01\"/{true \&\& <meta name=\"msvalidate.01\"/' src/layouts/Base.astro"
+
 echo
 reset
 DEFINED=$(grep -c '^t "' "$0")

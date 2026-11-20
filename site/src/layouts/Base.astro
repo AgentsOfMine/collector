@@ -9,7 +9,7 @@ interface Props { title: string; description: string; path: string; type?: "webs
 const { title, description, path, type = "website", noindex = false } = Astro.props;
 const canonical = `${SITE.origin}${url(path)}`;
 const og = `${SITE.origin}${url("/og/default.png")}`;
-const fullTitle = path === "/" ? SITE.name : `${title} | ${SITE.name}`;
+const fullTitle = path === "/" ? title : `${title} | ${SITE.name}`;
 ---
 
 <!doctype html>

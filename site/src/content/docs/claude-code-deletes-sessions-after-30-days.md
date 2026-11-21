@@ -126,4 +126,4 @@ The practical conclusion is the one in option 2: do not depend on one setting fo
 - **Versions.** Several changelog entries are newer than the 2.1.173 on the machine I used. Behaviour may differ on yours.
 - **Windows and Linux.** Nothing was run on Windows, and Linux ran in a container without Claude Code. See [Windows and Linux](#windows-and-linux).
 - **Other agents.** Codex, OpenCode and Pi keep sessions elsewhere; see the [session formats page](/session-formats/).
-
+- **Finding a session you kept.** Searching old conversations by what was said is tested in [Search old Claude Code conversations](https://blog.agentsofmine.io/posts/search-old-claude-code-conversations/); [the other half is getting one back](https://blog.agentsofmine.io/posts/restore-deleted-opencode-codex-session/) after it was deleted.

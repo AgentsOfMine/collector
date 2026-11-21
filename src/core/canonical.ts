@@ -51,6 +51,9 @@ export const CanonicalPartSchema = z.object({
   type: z.string(),
   // text / reasoning / thinking blocks
   text: z.string().optional(),
+  // Set on a text part that a tool injected into a user message (not typed by the person): a short fixed label,
+  // such as "system-reminder" or "analyze-mode". Absent on everything else. See core/injected.ts.
+  meta: z.string().optional(),
   // tool_use / tool_result blocks
   tool: z.string().optional(),
   callId: z.string().optional(),

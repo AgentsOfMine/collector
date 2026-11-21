@@ -1,3 +1,4 @@
+import { syntheticLabel } from "../../core/injected.js";
 import type Database from "better-sqlite3";
 import type { CanonicalMessage, CanonicalPart } from "../../core/canonical.js";
 import type { OpenCodeRow } from "./sqlite-reader.js";
@@ -88,8 +89,12 @@ function parsePart(raw: string): CanonicalPart | null {
 
     switch (type) {
       case "text":
-      case "reasoning":
-        return { type, text: (d["text"] as string) ?? "" };
+      case "reasoning": {
+        const text = (d["text"] as string) ?? "";
+        // OpenCode itself marks text it added on the user's behalf (a file it read, a plugin directive).
+        if (type === "text" && d["synthetic"] === true) return { type, text, meta: syntheticLabel(text) };
+        return { type, text };
+      }
       case "tool":
         return {
           type: "tool",

@@ -297,3 +297,35 @@ describe("runSync — a time window (since)", () => {
     expect(JSON.stringify(post.mock.calls[0]?.[1])).not.toContain(secret);
   });
 });
+
+describe("runSync — injected text is labelled before upload", () => {
+  it("sends a meta label on injected parts and leaves typed words unlabelled, with redaction still applied", async () => {
+    const secret = "sk-" + "A".repeat(24);
+    const session = makeSession("inj");
+    session.messages = [
+      {
+        messageId: "m1",
+        sessionId: "inj",
+        role: "user",
+        createdAt: "2026-06-03T10:00:00Z",
+        parts: [{ type: "text", text: `<system-reminder>\nuse ${secret}\n</system-reminder>\n\nFix the login` }],
+      },
+    ];
+    const post = makeSuccessPost(["inj"]);
+    await runSync([makeAdapter("opencode", [session])], BASE_CONFIG, makeCursorStore(), post);
+    const sent = post.mock.calls[0]?.[1] as { sessions: { messages: { parts: { text?: string; meta?: string }[] }[] }[] };
+    const parts = sent.sessions[0]?.messages[0]?.parts ?? [];
+    expect(parts.map((p) => p.meta)).toEqual(["system-reminder", undefined]);
+    expect(parts[1]?.text).toBe("Fix the login");
+    expect(JSON.stringify(parts)).not.toContain(secret);
+  });
+
+  it("does not change the session the adapter handed over", async () => {
+    const session = makeSession("keep");
+    session.messages = [
+      { messageId: "m1", sessionId: "keep", role: "user", createdAt: "2026-06-03T10:00:00Z", parts: [{ type: "text", text: "<system-reminder>\nx\n</system-reminder>" }] },
+    ];
+    await runSync([makeAdapter("opencode", [session])], BASE_CONFIG, makeCursorStore(), makeSuccessPost(["keep"]));
+    expect(session.messages[0]?.parts[0]).toEqual({ type: "text", text: "<system-reminder>\nx\n</system-reminder>" });
+  });
+});

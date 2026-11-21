@@ -1,6 +1,6 @@
 {
   "name": "agentsofmine",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Local collector that reads AI coding agent sessions and syncs them to the AgentsOfMine backend",
   "license": "MIT",
   "homepage": "https://agentsofmine.io",

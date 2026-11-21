@@ -3,8 +3,8 @@ title: What the AgentsOfMine collector reads, redacts and uploads
 description: Exactly what the AgentsOfMine collector reads from disk, what it removes before upload, what it sends and how often, and how to check each claim in the source.
 slug: what-the-collector-sends
 order: 2
-verified: 2026-11-20
-checkedAgainst: "Collector 0.1.3, commit abe3f56 (source read and the commands below run on 19 November 2026 on macOS; the install and the first check also run in an Ubuntu 24.04 container on 20 November 2026, commit 2a03ae9; Windows from the collector's notes and Node.js documentation only, not run)."
+verified: 2026-11-21
+checkedAgainst: "Collector 0.1.3, commit abe3f56 for the file list, limits and commands (source read and the commands below run on 19 November 2026 on macOS); the redaction rules, `aom sync --since` and the `meta` labels from the source of 0.1.6, run on 21 November 2026 on throwaway data and on read-only copies of local session files (macOS only; the install and the first check also run in an Ubuntu 24.04 container on 20 November 2026, commit 2a03ae9; Windows from the collector's notes and Node.js documentation only, not run)."
 kind: reference
 ---
 
@@ -73,6 +73,10 @@ Table: the redaction rules, from the source on 19 November 2026.
 
 **This is best effort, not a guarantee.** A bare random password, an unprefixed API key or a secret split across two messages has no pattern to match and goes through unchanged, and a harmless string can be redacted by mistake. Do not paste credentials into an agent on the assumption that the collector will remove them. Setting `AOM_NO_REDACT=1` turns redaction off and prints a warning.
 
+## What it labels
+
+A tool sometimes puts its own text into a message that is stored as yours: a `<system-reminder>` block, the AGENTS.md text a coding agent adds, or the mode header an OpenCode plugin puts before your question. The collector marks such a text part with a `meta` label and, when the tool's text sits in front of your words, puts it in its own part so your words are a part of their own. It marks only fixed, exact patterns at the very start of a text: a closed `<system-reminder>`, `<environment_context>`, `<local-command-caveat>` or a few similar tags, the `# AGENTS.md instructions for` block up to its `</INSTRUCTIONS>`, and the `[analyze-mode]` and `[search-mode]` headers up to their `---` line; plus any text part that OpenCode itself flags as synthetic. A bare `[word]` or `<word>` is never enough, and an unclosed tag is not marked, because people paste shell prompts and HTML. The label is always one of those fixed names, never copied from your message. If a pattern is not matched exactly, the text is left as it was, so a miss shows a tool's text as yours, and your own text is never hidden.
+
 ## What it shortens
 
 | What | Limit |
@@ -87,7 +91,7 @@ Table: length limits applied before upload. The 150-message limit is applied for
 
 ## What it sends, and when
 
-A session is sent as: its id, the agent's name, the project (path, and the Git remote, branch and commit when there is one), title, model, start and end time, message count, changed files and line counts, and its messages as typed parts (text, reasoning, tool calls, tool results, image stubs). Each upload also carries your device id and the collector's version.
+A session is sent as: its id, the agent's name, the project (path, and the Git remote, branch and commit when there is one), title, model, start and end time, message count, changed files and line counts, and its messages as typed parts (text, reasoning, tool calls, tool results, image stubs). Since 0.1.6, a text part in one of your messages that a tool added, not you, carries a short label in a `meta` field: `system-reminder`, `AGENTS.md`, `analyze-mode` or `search-mode`, or the generic `injected` (details in the next section). The text itself is not changed or removed; the label only lets the app show it apart from your own words. Each upload also carries your device id and the collector's version.
 
 - **Where to.** `https://agentsofmine.io/sync`, over HTTPS. `AOM_SYNC_URL` changes it.
 - **How.** A `POST`, five sessions at a time. Network errors and `429`, `500`, `502`, `503` and `504` are retried after 100, 200 and 400 milliseconds; other errors are not.

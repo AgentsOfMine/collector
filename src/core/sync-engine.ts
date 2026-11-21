@@ -4,6 +4,7 @@ import type { CursorStore } from "./cursor-store.js";
 import { post } from "./http-client.js";
 import { redactSession } from "./redact.js";
 import { lastActivity } from "./since.js";
+import { annotateSession } from "./injected.js";
 
 export interface SyncConfig {
   syncUrl: string;
@@ -63,7 +64,7 @@ export async function runSync(
           deviceId: config.deviceId,
           collectorVersion: config.collectorVersion,
           sentAt: new Date().toISOString(),
-          sessions: redact ? batch.map(redactSession) : [...batch],
+          sessions: batch.map((s) => (redact ? redactSession(annotateSession(s)) : annotateSession(s))),
         };
         const response = await httpPost(config.syncUrl, body, config.deviceToken);
         synced += response.accepted.length;

@@ -117,6 +117,78 @@ describe("redactText — secrets that must go", () => {
   });
 });
 
+describe("redactText — vendor tokens, basic auth, query secrets, key/value pairs", () => {
+  const rnd = (n: number) => "aB3dE5gH7jK9mN1pQ3sT5vX7zC9eF2hJ4kL6nR8".repeat(3).slice(0, n);
+
+  it("redacts prefixed vendor tokens", () => {
+    for (const tok of [
+      fake("AI", "za", rnd(35)),
+      fake("sk_", "live_", rnd(24)),
+      fake("rk_", "live_", rnd(24)),
+      fake("glp", "at-", rnd(20)),
+      fake("npm", "_", rnd(36)),
+      fake("hf", "_", rnd(34)),
+      fake("SG", ".", rnd(22), ".", rnd(43)),
+      fake("da", "pi", "0123456789abcdef0123456789abcdef"),
+      fake("GOC", "SPX-", rnd(28)),
+    ]) {
+      expect(redactText(`use ${tok} now`)).toBe("use <REDACTED:service-token> now");
+    }
+  });
+
+  it("redacts chat webhook addresses", () => {
+    expect(redactText(fake("https://hooks.slack.com/services/", "T0123ABCD/B0123ABCD/", rnd(24)))).toBe("<REDACTED:webhook-url>");
+    expect(redactText(fake("https://discord.com/api/webhooks/", "123456789012345678/", rnd(60)))).toBe("<REDACTED:webhook-url>");
+  });
+
+  it("redacts basic-auth headers and curl -u passwords but keeps the user name", () => {
+    expect(redactText("Authorization: Basic ZGVwbG95OnMzY3IzdFBhc3M=")).toBe("Authorization: Basic <REDACTED:basic-auth>");
+    expect(redactText("curl -u admin:s3cr3tPass https://x.invalid")).toBe("curl -u admin:<REDACTED:basic-auth> https://x.invalid");
+    expect(redactText("curl -u admin:$PASSWORD https://x.invalid")).toBe("curl -u admin:$PASSWORD https://x.invalid");
+  });
+
+  it("redacts a secret in a URL query but leaves placeholders", () => {
+    expect(redactText(`https://a.invalid/v1?access_token=${rnd(32)}&x=1`)).toBe("https://a.invalid/v1?access_token=<REDACTED:query-secret>&x=1");
+    expect(redactText("https://a.invalid/v1?token=${TOKEN}")).toBe("https://a.invalid/v1?token=${TOKEN}");
+    expect(redactText("https://a.invalid/v1?token=abcdefghijklmnop")).toBe("https://a.invalid/v1?token=abcdefghijklmnop");
+  });
+
+  it("redacts name/value pairs in JSON, YAML and shell, in any case", () => {
+    expect(redactText(`{"api_key": "${rnd(32)}", "name": "x"}`)).toBe('{"api_key": "<REDACTED:secret>", "name": "x"}');
+    expect(redactText(`db_password=${rnd(16)}`)).toBe("db_password=<REDACTED:secret>");
+    expect(redactText(`token: ${rnd(32)}`)).toBe("token: <REDACTED:secret>");
+    expect(redactText(`AccountKey=${rnd(60)}==;EndpointSuffix=x`)).toContain("<REDACTED:secret>");
+  });
+
+  it("redacts secret-bearing headers and flags", () => {
+    expect(redactText(`-H "x-api-key: ${rnd(32)}"`)).toBe('-H "x-api-key: <REDACTED:secret>"');
+    expect(redactText(`mysql --password=${rnd(14)} -u root`)).toBe("mysql --password=<REDACTED:secret> -u root");
+    expect(redactText("pytest --password hunter2-xyz1")).toBe("pytest --password <REDACTED:secret>");
+  });
+
+  it("leaves names, types, prose and ARNs that only mention secrets", () => {
+    for (const text of [
+      "token: string",
+      "tokenizer: 'bert-base-uncased-vocab'",
+      "the token budget is high and the password policy changed",
+      "arn:aws:secretsmanager:eu-central-1:123456789012:secret:prod/db-AbC123",
+      "const password = process.env.DB_PASSWORD_VALUE;",
+      "password: ${DB_PASSWORD}",
+      "api_key: <your key here>",
+      "--password",
+      "pass --password option to the script",
+      "curl -u admin https://x.invalid",
+    ]) {
+      expect(redactText(text)).toBe(text);
+    }
+  });
+
+  it("is idempotent for the new rules", () => {
+    const text = `curl -u a:s3cr3tPass "https://x.invalid?token=${rnd(30)}" -H "x-api-key: ${rnd(30)}" api_key=${rnd(30)}`;
+    expect(redactText(redactText(text))).toBe(redactText(text));
+  });
+});
+
 describe("redactText — ordinary text must be left alone", () => {
   const harmless = [
     "const sk = require('./sk-utils')",

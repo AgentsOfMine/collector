@@ -61,8 +61,12 @@ Every session goes through [`src/core/redact.ts`](https://github.com/AgentsOfMin
 | `<REDACTED:slack-token>` | `xox…` tokens |
 | `<REDACTED:jwt>` | JSON Web Tokens |
 | `<REDACTED:bearer-token>` | the token after `Bearer` |
+| `<REDACTED:service-token>` | tokens with a vendor prefix: Google API keys (`AIza…`) and OAuth secrets (`GOCSPX-`), live Stripe keys, GitLab (`glpat-`), npm, Hugging Face, SendGrid, Databricks, Shopify and DigitalOcean tokens |
+| `<REDACTED:webhook-url>` | Slack and Discord webhook addresses |
+| `<REDACTED:basic-auth>` | the value after `Authorization: Basic`, and the password in `curl -u user:password` |
+| `<REDACTED:query-secret>` | the value of `access_token=`, `api_key=`, `token=`, `secret=` or `password=` in a URL query, when it is 12+ characters with a digit |
 | `<REDACTED:password>` | the password in `scheme://user:password@host` |
-| `<REDACTED:secret>` | the value in an `UPPER_CASE_NAME=value` assignment whose name ends in `PASSWORD`, `SECRET`, `TOKEN`, `API_KEY`, `PRIVATE_KEY` or `ACCESS_KEY`; and any string value under an object key with such a name inside a tool call's input |
+| `<REDACTED:secret>` | the value in an `UPPER_CASE_NAME=value` assignment whose name ends in `PASSWORD`, `SECRET`, `TOKEN`, `API_KEY`, `PRIVATE_KEY` or `ACCESS_KEY`; and any string value under an object key with such a name inside a tool call's input; since the next release also a `name: value` or `name=value` pair in any case whose name ends in such a word (`api_key`, `db_password`, `"clientSecret"`) when the value looks like a secret (12+ characters in quotes with a capital, digit or symbol, or 16+ unquoted with a letter and a digit), the value of an `x-api-key:` style header, and the value of a `--password=` or `--token` style flag |
 | `<REDACTED:private-key>` | PEM and PGP private key blocks |
 
 Table: the redaction rules, from the source on 19 November 2026.

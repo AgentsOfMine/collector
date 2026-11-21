@@ -90,6 +90,53 @@ export const REDACTION_RULES: readonly RedactionRule[] = [
       /\b([A-Z][A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_?KEY|PRIVATE_?KEY|ACCESS_?KEY)[A-Z0-9_]*["']?\s*[=:]\s*["']?)(?=[^\s"'`(){}<>$,;[\]]*[A-Za-z])[^\s"'`(){}<>$,;[\]]{8,}/g,
     replace: (_m, prefix) => `${prefix}${marker("secret")}`,
   },
+  {
+    // Tokens with a vendor prefix that nothing else shares: Google API key and
+    // OAuth client secret, live Stripe keys, GitLab and npm tokens, Hugging Face,
+    // SendGrid, Databricks, Shopify and DigitalOcean.
+    name: "service-token",
+    pattern:
+      /(?<![A-Za-z0-9])(?:AIza[A-Za-z0-9_-]{35}|[sr]k_live_[A-Za-z0-9]{16,}|glpat-[A-Za-z0-9_-]{20,}|npm_[A-Za-z0-9]{36}|hf_[A-Za-z0-9]{34,}|SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}|dapi[a-f0-9]{32}|shpat_[a-f0-9]{32}|dop_v1_[a-f0-9]{64}|GOCSPX-[A-Za-z0-9_-]{28})/g,
+  },
+  {
+    // A webhook address is the credential: whoever has it can post.
+    name: "webhook-url",
+    pattern:
+      /https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/]{20,}|https:\/\/(?:discord|discordapp)\.com\/api\/webhooks\/[0-9]{10,}\/[A-Za-z0-9_-]{20,}/g,
+  },
+  {
+    // `Authorization: Basic <base64>` and `curl -u user:password`.
+    name: "basic-auth",
+    pattern:
+      /\b(authorization\s*:\s*["']?basic\s+)[A-Za-z0-9+/]{12,}={0,2}|(\bcurl\b[^\n]{0,200}?\s(?:-u|--user)[\s=]+[^\s:'"]+:)(?!<REDACTED|\$|\{|<|your|xxx|(?:USER|PASS|PASSWORD|PWD|TOKEN|SECRET|KEY)(?![A-Za-z0-9]))[^\s'"]{4,}/gi,
+    replace: (_m, header, curl) => `${header ?? curl}${marker("basic-auth")}`,
+  },
+  {
+    // A secret carried in a URL query: ?access_token=..., &api_key=...
+    name: "query-secret",
+    pattern:
+      /([?&](?:access_token|refresh_token|api_?key|apikey|token|secret|client[_-]?secret|password|passwd)=)(?!<REDACTED|\$|\{|%7B|%24|your|xxx|\*\*\*)(?=[^&\s"'#<>]*[0-9])[^&\s"'#<>]{12,}/gi,
+    replace: (_m, prefix) => `${prefix}${marker("query-secret")}`,
+  },
+  {
+    // name: value / name=value for names that END in a secret word (api_key,
+    // db_password, clientSecret, "apiKey": ...), in any case, in JSON, YAML or
+    // a shell. A quoted value needs 12+ characters with a capital, digit or symbol (so a
+    // lowercase identifier such as 'aom_id_token' stays); a bare one needs 16+ with
+    // a letter and a digit, so `token: string` and `tokenizer: "x"` stay. A name
+    // that follows `:` or `/` is skipped, so an ARN such as `...:secret:name-AbC1` stays.
+    name: "key-value",
+    pattern:
+      /((?<![A-Za-z0-9_.-])(?<![A-Za-z0-9]:)[A-Za-z0-9_.-]{0,40}(?:password|passwd|secret|token|api[_-]?key|apikey|access[_-]?key|account[_-]?key|private[_-]?key|auth[_-]?key)["']?\s*[:=]\s*)(?:(["'])(?!<REDACTED)(?=[^"'\s]*[A-Z0-9/+=!@#%^&*])[^"'\s<>(){}$`,;\\]{12,}(?=\2)|(?!<REDACTED)(?=[A-Za-z0-9/+_=-]*[0-9])(?=[A-Za-z0-9/+_=-]*[A-Za-z])[A-Za-z0-9/+_=-]{16,})/gi,
+    replace: (_m, prefix, quote) => `${prefix}${quote ?? ""}${marker("secret")}`,
+  },
+  {
+    // `x-api-key: ...` style headers and `--password=...` style flags.
+    name: "header-flag",
+    pattern:
+      /((?:x-api-key|api-key|x-auth-token|x-access-token)["']?\s*:\s*["']?)(?!<REDACTED)[A-Za-z0-9._~+/=-]{16,}|(--(?:password|passwd|token|api-key|secret|client-secret|access-key)=["']?)(?!<REDACTED|-)[^\s"']{6,}|(--(?:password|passwd|token|api-key|secret|client-secret|access-key)\s+["']?)(?!<REDACTED|-)(?=[^\s"']*[0-9!@#%^&*_+/=])[^\s"']{6,}/gi,
+    replace: (_m, header, flag, flag2) => `${header ?? flag ?? flag2}${marker("secret")}`,
+  },
 ];
 
 const PRIVATE_KEY_HEADER = /-----BEGIN ((?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?)-----/g;

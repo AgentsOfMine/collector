@@ -66,7 +66,9 @@ must(read("src/adapters/claude-code/accumulator.ts").includes("slice(0, 80)") &&
 const redact = read("src/core/redact.ts");
 const ruleNames = [...redact.matchAll(/name:\s*"([a-z-]+)"/g)].map((m) => m[1]);
 const shownMarkers = [...sends.matchAll(/<REDACTED:([a-z-]+)>/g)].map((m) => m[1]);
-for (const n of ruleNames) must(shownMarkers.includes(n === "secret-assignment" ? "secret" : n), "redaction-undocumented", `redaction rule "${n}" has no row in what-the-collector-sends.md`);
+// Three rules write the marker `secret` under their own rule names.
+const MARKER_OF = { "secret-assignment": "secret", "key-value": "secret", "header-flag": "secret" };
+for (const n of ruleNames) must(shownMarkers.includes(MARKER_OF[n] ?? n), "redaction-undocumented", `redaction rule "${n}" has no row in what-the-collector-sends.md`);
 if (redact.includes('marker("private-key")')) must(shownMarkers.includes("private-key"), "redaction-undocumented", "private-key rule has no row");
 for (const m of new Set(shownMarkers)) must(ruleNames.includes(m) || m === "secret" || m === "private-key" || m === "github-token", "redaction-removed", `the page lists <REDACTED:${m}> and the code has no such rule`);
 
@@ -84,7 +86,9 @@ const deletes = [...srcText.matchAll(/\b(unlinkSync|rmSync|rmdirSync|unlink|rmdi
 must(deletes === 1, "deletes", `expected exactly one file removal in src (config-repository clearLocalState), found ${deletes}: the pages say the collector deletes only its own state`);
 const writes = src("src").filter((f) => /writeFileSync|appendFile|createWriteStream/.test(readFileSync(f, "utf8"))).map((f) => f.slice(REPO.length + 1)).sort();
 must(JSON.stringify(writes) === JSON.stringify(["src/core/cursor-store.ts", "src/core/last-sync-store.ts", "src/infrastructure/config-repository.ts"]), "write-paths", `files that write: ${writes.join(", ")}: the page names exactly three`);
-must(!/anthropic\.com|api\.openai\.com|api\.github\.com|copilot|oauth|client_secret/i.test(srcText), "provider-login", "the collector source now mentions a provider login: the page says it prints nothing for that search");
+// redact.ts is left out: it names vendor token formats (an OAuth client secret prefix) by design, and only matches them.
+const srcNoRedact = src("src").filter((f) => !f.endsWith("redact.ts")).map((f) => readFileSync(f, "utf8")).join("\n");
+must(!/anthropic\.com|api\.openai\.com|api\.github\.com|copilot|oauth|client_secret/i.test(srcNoRedact), "provider-login", "the collector source now mentions a provider login: the page says it prints nothing for that search");
 const verbs = [...srcText.matchAll(/method:\s*"([A-Z]+)"/g)].map((m) => m[1]);
 must(verbs.every((v) => v === "POST" || v === "GET"), "http-verbs", `the collector now sends ${[...new Set(verbs)]}`);
 

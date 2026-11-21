@@ -106,6 +106,14 @@ t "a Search Console file whose content names another file is read as a page" "[h
 t "a Bing tag with a code of the wrong shape is refused" "[verification-tag]" check "sed -i '' 's/content={SITE.bingVerification}/content=\"not-a-code\"/' src/layouts/Base.astro"
 t "a Bing tag on every page, not only the home page, is refused" "[verification-tag]" check "sed -i '' 's/{path === \"\/\" \&\& <meta name=\"msvalidate.01\"/{true \&\& <meta name=\"msvalidate.01\"/' src/layouts/Base.astro"
 
+echo "page pictures (DESIGN.md Post image)"
+t "a page picture file is missing"                 "[post-card]" check "rm public/cards/session-formats-thumb.png"
+t "a page picture has too short an alt"            "[post-card]" check "sed -i '' 's|alt: \"Four agents keep their sessions in different shapes: OpenCode in one SQLite database, Claude Code and Codex in JSONL files, Pi in JSONL files per project.\"|alt: \"Short.\"|' src/lib/card-specs.mjs"
+t "a page has no picture spec"                     "[post-card]" check "sed -i '' '/^  \"add-an-agent\": {/,/^  },/d' src/lib/card-specs.mjs"
+t "the alt on a page differs from the spec (a stale cache looks like this)" "[post-card]" check "sed -i '' 's|alt: spec.alt,|alt: spec.alt + \" (stale)\",|' src/lib/rehype-card.mjs"
+t "a third page on the same picture template"      "[post-card]" check "sed -i '' 's/kind: \"compare\"/kind: \"tree\"/; s/kind: \"list\"/kind: \"tree\"/' src/lib/card-specs.mjs"
+t "an empty alt on an image that is not a card thumbnail" "[img-alt]" check "printf '\n\n<img src=\"/collector/favicon-32.png\" alt=\"\" width=\"32\" height=\"32\">\n' >> $A"
+
 echo
 reset
 DEFINED=$(grep -c '^t "' "$0")

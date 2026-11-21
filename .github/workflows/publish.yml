@@ -1,0 +1,66 @@
+name: Publish to npm
+
+# Publishes the package when a version tag such as v0.1.5 is pushed. No token is stored: npm trusts this workflow
+# file by its name (npmjs.com, package agentsofmine, Settings, Trusted Publisher: owner AgentsOfMine, repository
+# collector, workflow publish.yml, no environment) and accepts a short-lived identity token that GitHub issues for
+# the run. Requires npm 11.5.1 or newer and Node 22.14 or newer.
+#
+# To release: bump the version (npm version X.Y.Z --no-git-tag-version), commit, push main, then
+#   git tag vX.Y.Z && git push origin vX.Y.Z
+# A merge or a commit alone never publishes. The "Run workflow" button publishes an existing tag that was
+# pushed before this file existed (give the tag name, for example v0.1.4).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish, for example v0.1.4"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: The tag must equal the package version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "tag $TAG does not match package.json version $VERSION" >&2
+            exit 1
+          fi
+      - name: Stop if this version is already on npm
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "agentsofmine@$VERSION" version >/dev/null 2>&1; then
+            echo "agentsofmine@$VERSION is already published; nothing to do"
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+      - run: npm ci
+        if: env.SKIP != '1'
+      - run: npm run build
+        if: env.SKIP != '1'
+      - run: npm run lint
+        if: env.SKIP != '1'
+      - name: Install system dependencies
+        if: env.SKIP != '1'
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+      - run: npm test
+        if: env.SKIP != '1'
+      - run: npm publish
+        if: env.SKIP != '1'

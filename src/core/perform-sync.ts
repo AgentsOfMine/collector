@@ -8,7 +8,7 @@
  */
 
 import { loadConfig } from "../config.js";
-import { runSync, type SyncConfig, type SyncSummary } from "./sync-engine.js";
+import { runSync, type RunSyncOptions, type SyncConfig, type SyncSummary } from "./sync-engine.js";
 import { FileCursorStore } from "./cursor-store.js";
 import { OpenCodeAdapter } from "../adapters/opencode/index.js";
 import { ClaudeCodeAdapter } from "../adapters/claude-code/index.js";
@@ -32,9 +32,11 @@ export class NotPairedError extends Error {
  * and delegates to the core engine. The cursor store is flushed before
  * returning so progress is durable even if the process is killed afterwards.
  *
+ * With `options.since` it re-sends a time window and leaves the cursors alone.
+ *
  * @throws {NotPairedError} when no device token is available.
  */
-export async function performSync(): Promise<SyncSummary> {
+export async function performSync(options: RunSyncOptions = {}): Promise<SyncSummary> {
   const config = await loadConfig();
 
   if (!config.deviceToken) {
@@ -57,7 +59,7 @@ export async function performSync(): Promise<SyncSummary> {
 
   const cursorStore = new FileCursorStore();
 
-  const summary = await runSync(adapters, syncConfig, cursorStore);
+  const summary = await runSync(adapters, syncConfig, cursorStore, undefined, options);
   cursorStore.flush();
   setLastSyncResult(summary);
   recordLastSync("sync");

@@ -77,8 +77,9 @@ program
   .command("sync")
   .description("Sync new sessions to the cloud now (one-shot)")
   .option("-v, --verbose", "Print per-error detail")
-  .action(async (opts: { verbose: boolean }) => {
-    await exitWith(runSyncCommand(term, { verbose: opts.verbose }));
+  .option("--since <when>", "Re-send sessions active since a time: 7d, 12h, 2w, a date such as 2026-06-01, or all (saved positions are not changed)")
+  .action(async (opts: { verbose: boolean; since?: string }) => {
+    await exitWith(runSyncCommand(term, { verbose: opts.verbose, ...(opts.since !== undefined ? { since: opts.since } : {}) }));
   });
 
 program

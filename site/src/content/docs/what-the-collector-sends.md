@@ -66,7 +66,7 @@ Every session goes through [`src/core/redact.ts`](https://github.com/AgentsOfMin
 | `<REDACTED:basic-auth>` | the value after `Authorization: Basic`, and the password in `curl -u user:password` |
 | `<REDACTED:query-secret>` | the value of `access_token=`, `api_key=`, `token=`, `secret=` or `password=` in a URL query, when it is 12+ characters with a digit |
 | `<REDACTED:password>` | the password in `scheme://user:password@host` |
-| `<REDACTED:secret>` | the value in an `UPPER_CASE_NAME=value` assignment whose name ends in `PASSWORD`, `SECRET`, `TOKEN`, `API_KEY`, `PRIVATE_KEY` or `ACCESS_KEY`; and any string value under an object key with such a name inside a tool call's input; since the next release also a `name: value` or `name=value` pair in any case whose name ends in such a word (`api_key`, `db_password`, `"clientSecret"`) when the value looks like a secret (12+ characters in quotes with a capital, digit or symbol, or 16+ unquoted with a letter and a digit), the value of an `x-api-key:` style header, and the value of a `--password=` or `--token` style flag |
+| `<REDACTED:secret>` | the value in an `UPPER_CASE_NAME=value` assignment whose name ends in `PASSWORD`, `SECRET`, `TOKEN`, `API_KEY`, `PRIVATE_KEY` or `ACCESS_KEY`; and any string value under an object key with such a name inside a tool call's input; since 0.1.4 also a `name: value` or `name=value` pair in any case whose name ends in such a word (`api_key`, `db_password`, `"clientSecret"`) when the value looks like a secret (12+ characters in quotes with a capital, digit or symbol, or 16+ unquoted with a letter and a digit), the value of an `x-api-key:` style header, and the value of a `--password=` or `--token` style flag |
 | `<REDACTED:private-key>` | PEM and PGP private key blocks |
 
 Table: the redaction rules, from the source on 19 November 2026.
@@ -91,7 +91,7 @@ A session is sent as: its id, the agent's name, the project (path, and the Git r
 
 - **Where to.** `https://agentsofmine.io/sync`, over HTTPS. `AOM_SYNC_URL` changes it.
 - **How.** A `POST`, five sessions at a time. Network errors and `429`, `500`, `502`, `503` and `504` are retried after 100, 200 and 400 milliseconds; other errors are not.
-- **When.** `aom sync` sends once. `aom start` watches the session folders and syncs about five seconds after the last change.
+- **When.** `aom sync` sends once; since 0.1.5, `aom sync --since 7d` (or `12h`, `2w`, a date, `all`) sends again every session active in that window and does not move the saved positions. `aom start` watches the session folders and syncs about five seconds after the last change.
 - **Who.** The device token from `aom pair` identifies your computer. It is stored in your operating system's keychain, with a copy in `~/.agentsofmine/config.json` that only your user can read (on Unix; see [Windows and Linux](#windows-and-linux)).
 
 ## Windows and Linux

@@ -3,6 +3,7 @@ import type { Adapter } from "../adapters/adapter.js";
 import type { CursorStore } from "./cursor-store.js";
 import { post } from "./http-client.js";
 import { redactSession } from "./redact.js";
+import { lastActivity } from "./since.js";
 
 export interface SyncConfig {
   syncUrl: string;
@@ -18,12 +19,22 @@ export interface SyncSummary {
   errors: string[];
 }
 
+export interface RunSyncOptions {
+  /**
+   * Send every session whose last activity is on or after this date, ignoring the saved cursor, and leave the
+   * cursor as it is. A one-shot re-send, not a new baseline.
+   */
+  since?: Date;
+}
+
 export async function runSync(
   adapters: Adapter[],
   config: SyncConfig,
   cursorStore: CursorStore,
   httpPost: typeof post = post,
+  options: RunSyncOptions = {},
 ): Promise<SyncSummary> {
+  const since = options.since;
   const batchSize = config.batchSize ?? 5;
 
   // Every session is redacted here, the single choke point all uploads share
@@ -39,7 +50,7 @@ export async function runSync(
   const errors: string[] = [];
 
   for (const adapter of adapters) {
-    const cursorValue = cursorStore.get(adapter.name);
+    const cursorValue = since === undefined ? cursorStore.get(adapter.name) : null;
     const cursor = { value: cursorValue };
 
     const batch: SessionWithMessages[] = [];
@@ -60,7 +71,7 @@ export async function runSync(
         for (const r of response.rejected) {
           errors.push(`${adapter.name}/${r.sessionId}: ${r.reason}`);
         }
-        if (pendingCursor !== null) {
+        if (pendingCursor !== null && since === undefined) {
           cursorStore.set(adapter.name, pendingCursor);
         }
       } catch (err) {
@@ -73,6 +84,11 @@ export async function runSync(
 
     try {
       for await (const { session, cursor: itemCursor } of adapter.listNewSessions(cursor)) {
+        if (since !== undefined) {
+          const last = lastActivity(session);
+          // A session with no readable date is sent, not dropped: losing one silently is worse than sending one more.
+          if (last !== null && last.getTime() < since.getTime()) continue;
+        }
         batch.push(session);
         pendingCursor = itemCursor;
 

@@ -236,3 +236,64 @@ describe("runSync — redaction before upload", () => {
     }
   });
 });
+
+describe("runSync — a time window (since)", () => {
+  const old = makeSession("old", "2026-05-01T10:00:00Z");
+  const recent = makeSession("recent", "2026-11-20T10:00:00Z");
+  const undated = { ...makeSession("undated"), startedAt: "not a date" };
+  const SINCE = new Date("2026-11-01T00:00:00Z");
+
+  it("sends only sessions active on or after the date, and keeps sessions with no readable date", async () => {
+    const post = makeSuccessPost(["recent", "undated"]);
+    await runSync([makeAdapter("opencode", [old, recent, undated])], BASE_CONFIG, makeCursorStore(), post, { since: SINCE });
+    const sent = (post.mock.calls[0]?.[1] as { sessions: { sessionId: string }[] }).sessions.map((x) => x.sessionId);
+    expect(sent).toEqual(["recent", "undated"]);
+  });
+
+  it("uses the end of a session, so one that started long ago but ran recently is sent", async () => {
+    const longRunning = { ...makeSession("long", "2026-01-01T00:00:00Z"), endedAt: "2026-11-20T00:00:00Z" };
+    const post = makeSuccessPost(["long"]);
+    await runSync([makeAdapter("opencode", [longRunning])], BASE_CONFIG, makeCursorStore(), post, { since: SINCE });
+    expect(post).toHaveBeenCalledOnce();
+  });
+
+  it("does not read the saved cursor and does not move it", async () => {
+    const store = makeCursorStore();
+    store.stored["opencode"] = "SAVED";
+    const seen: (string | null)[] = [];
+    const adapter: Adapter = {
+      name: "opencode",
+      async *listNewSessions(cursor: Cursor) {
+        seen.push(cursor.value);
+        yield { session: recent, cursor: "NEW" };
+      },
+    };
+    await runSync([adapter], BASE_CONFIG, store, makeSuccessPost(["recent"]), { since: SINCE });
+    expect(seen).toEqual([null]);
+    expect(store.stored["opencode"]).toBe("SAVED");
+  });
+
+  it("without a window it still reads and advances the cursor", async () => {
+    const store = makeCursorStore();
+    store.stored["opencode"] = "SAVED";
+    const seen: (string | null)[] = [];
+    const adapter: Adapter = {
+      name: "opencode",
+      async *listNewSessions(cursor: Cursor) {
+        seen.push(cursor.value);
+        yield { session: recent, cursor: "NEW" };
+      },
+    };
+    await runSync([adapter], BASE_CONFIG, store, makeSuccessPost(["recent"]));
+    expect(seen).toEqual(["SAVED"]);
+    expect(store.stored["opencode"]).toBe("NEW");
+  });
+
+  it("still redacts what it re-sends", async () => {
+    const secret = "sk-" + "A".repeat(24);
+    const withSecret = { ...recent, title: `key ${secret}` };
+    const post = makeSuccessPost(["recent"]);
+    await runSync([makeAdapter("opencode", [withSecret])], BASE_CONFIG, makeCursorStore(), post, { since: SINCE });
+    expect(JSON.stringify(post.mock.calls[0]?.[1])).not.toContain(secret);
+  });
+});

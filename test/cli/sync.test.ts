@@ -123,3 +123,38 @@ describe("aom sync — wiring", () => {
     expect(await runSyncCommand(term)).toBe(1);
   });
 });
+
+describe("aom sync --since", () => {
+  const paired = { isPaired: async () => true };
+
+  it("passes the cut-off date to performSync", async () => {
+    const calls: unknown[] = [];
+    const code = await runSyncCommand(term, { since: "2026-06-01" }, { ...paired, performSync: async (o) => { calls.push(o); return { synced: 2, failed: 0, errors: [] }; } });
+    expect(code).toBe(0);
+    expect((calls[0] as { since: Date }).since.toISOString()).toBe("2026-06-01T00:00:00.000Z");
+    expect(term.text()).toContain("since 2026-06-01");
+    expect(term.text()).toContain("saved positions are left as they are");
+  });
+
+  it("passes no window without the flag", async () => {
+    const calls: unknown[] = [];
+    await runSyncCommand(term, {}, { ...paired, performSync: async (o) => { calls.push(o); return { synced: 0, failed: 0, errors: [] }; } });
+    expect(calls).toEqual([{}]);
+    expect(term.text()).not.toContain("saved positions");
+  });
+
+  it("refuses a bad value, says why, and syncs nothing", async () => {
+    let ran = false;
+    const code = await runSyncCommand(term, { since: "yesterday" }, { ...paired, performSync: async () => { ran = true; return { synced: 0, failed: 0, errors: [] }; } });
+    expect(code).toBe(1);
+    expect(ran).toBe(false);
+    expect(term.errText()).toContain("--since yesterday");
+  });
+
+  it("checks the value before it checks pairing, so a typo is reported first", async () => {
+    const code = await runSyncCommand(term, { since: "7x" }, { isPaired: async () => false, performSync: async () => ({ synced: 0, failed: 0, errors: [] }) });
+    expect(code).toBe(1);
+    expect(term.errText()).toContain("--since 7x");
+    expect(term.errText()).not.toContain("not paired");
+  });
+});

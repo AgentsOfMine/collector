@@ -158,6 +158,7 @@ aom start
 | `aom status` | Prints pairing status and last-synced timestamps |
 | `aom status --json` | Prints a single machine-readable JSON line (`paired`, `deviceId`, `lastSyncAt`, `queueDepth`, `lastError`) — for scripts and status integrations |
 | `aom sync` | Runs one sync cycle now and prints how many sessions synced or failed (exit code 1 if any failed) |
+| `aom sync --since <when>` | Re-sends the sessions active since `<when>` (`7d`, `12h`, `2w`, a date such as `2026-06-01`, or `all`) and leaves the saved positions alone, so the next plain `aom sync` carries on where it was. The server ignores a session it already has. |
 | `aom unpair [-y]` | Removes the device token from the keychain and clears local state (`-y` skips the prompt) |
 | `aom --version` | Prints the installed version |
 

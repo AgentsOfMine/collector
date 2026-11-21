@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import { url } from "../site.config";
 import { formatDate, isoDate } from "../lib/format";
+import { CARDS, CARD_BASE } from "../lib/card-specs.mjs";
 const pages = (await getCollection("docs")).filter((p) => p.data.kind !== "about").sort((a, b) => a.data.order - b.data.order);
 ---
 
@@ -19,10 +20,22 @@ const pages = (await getCollection("docs")).filter((p) => p.data.kind !== "about
     <ul>
       {pages.map((p) => (
         <li class="py-6 border-b border-border-default first:pt-0">
-          <a href={url(`/${p.data.slug}/`)} class="block group">
-            <h3 class="text-heading-s text-text-primary group-hover:underline underline-offset-4">{p.data.title}</h3>
-            <p class="mt-2 text-body-s text-neutral-400">{p.data.description}</p>
-            <p class="mt-2 text-caption text-neutral-600">Checked <time datetime={isoDate(p.data.verified)}>{formatDate(p.data.verified)}</time></p>
+          <a href={url(`/${p.data.slug}/`)} class="group flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+            {p.data.slug in CARDS && (
+              <img
+                src={`${CARD_BASE}/cards/${p.data.slug}-thumb.png`}
+                alt=""
+                width="640"
+                height="360"
+                loading="lazy"
+                class="w-full sm:w-56 sm:order-last shrink-0 rounded-md border border-border-default"
+              />
+            )}
+            <div class="min-w-0 flex-1">
+              <h3 class="text-heading-s text-text-primary group-hover:underline underline-offset-4">{p.data.title}</h3>
+              <p class="mt-2 text-body-s text-neutral-400">{p.data.description}</p>
+              <p class="mt-2 text-caption text-neutral-600">Checked <time datetime={isoDate(p.data.verified)}>{formatDate(p.data.verified)}</time></p>
+            </div>
           </a>
         </li>
       ))}

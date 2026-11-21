@@ -4,6 +4,7 @@ import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import rehypeTakeaway from "./src/lib/rehype-takeaway.mjs";
 import rehypeHighlight from "./src/lib/rehype-highlight.mjs";
+import rehypeCard from "./src/lib/rehype-card.mjs";
 
 /** GitHub Pages serves a project site under /<repo>/. Every link has to carry it. */
 const BASE = "/collector";
@@ -46,7 +47,7 @@ export default defineConfig({
   // GitHub Pages cannot send a Content-Security-Policy header, so the page carries one as a <meta> tag (see Base.astro).
   // That policy refuses inline styles, so CSS is never inlined.
   build: { inlineStylesheets: "never" },
-  markdown: { syntaxHighlight: false, rehypePlugins: [docsMarkdown, rehypeTakeaway, rehypeHighlight] },
+  markdown: { syntaxHighlight: false, rehypePlugins: [docsMarkdown, rehypeTakeaway, rehypeHighlight, rehypeCard] },
   integrations: [sitemap()],
   vite: { plugins: [tailwindcss()] },
 });

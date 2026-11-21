@@ -11,10 +11,11 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview --port 4399",
-    "check": "astro build && node scripts/check.mjs && node scripts/check-drift.mjs && node scripts/test-highlight.mjs",
+    "check": "rm -rf .astro node_modules/.astro dist && astro build && node scripts/check.mjs && node scripts/check-drift.mjs && node scripts/test-highlight.mjs",
     "csp": "node scripts/csp-smoke.mjs",
     "prove": "scripts/prove-checks.sh",
     "og": "node scripts/make-og.mjs",
+    "cards": "node scripts/make-cards.mjs",
     "verify": "npm run check && npm run csp"
   },
   "dependencies": {

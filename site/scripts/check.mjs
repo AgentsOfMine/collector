@@ -8,6 +8,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import { imageMetadata } from "./lib/images.mjs";
 
 const ROOT = process.cwd();
@@ -138,7 +139,9 @@ for (const f of pages) {
   const levels = [...html.matchAll(/<h([1-6])\b/gi)].map((m) => +m[1]);
   for (let i = 1; i < levels.length; i++) if (levels[i] > levels[i - 1] + 1) fail("heading-order", where, `h${levels[i - 1]} then h${levels[i]}`);
   for (const tag of html.match(/<img\b[^>]*>/gi) ?? []) {
-    if (!/\balt="[^"]+"/i.test(tag)) fail("img-alt", where, tag.slice(0, 80));
+    // A card thumbnail in a list is decorative: the title beside it says the same, so its alt is empty on purpose.
+    const decorativeCard = new RegExp(`\\bsrc="${BASE}/cards/[a-z0-9-]+-thumb\\.png"`, "i").test(tag) && /\balt=""/i.test(tag);
+    if (!decorativeCard && !/\balt="[^"]+"/i.test(tag)) fail("img-alt", where, tag.slice(0, 80));
     if (!/\bwidth="\d+"/i.test(tag) || !/\bheight="\d+"/i.test(tag)) fail("img-size", where, "img without width and height: " + tag.slice(0, 80));
   }
   for (const m of html.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)) {
@@ -240,6 +243,31 @@ if (existsSync(docsDir)) {
     if (order) { if (orders.has(order)) fail("duplicate-order", f, `order ${order} is used twice`); orders.add(order); }
     if (!/^verified:\s*\d{4}-\d{2}-\d{2}/m.test(t)) fail("verified", f, "no verified date");
   }
+}
+
+// 10. Page pictures (DESIGN.md "Post image"): every docs page except "about" has both files and an alt text, shows
+// them, and no template is used by more than two pages. Same rule id as the blog's, with the docs base path.
+if (existsSync(docsDir)) {
+  const { CARDS } = await import(pathToFileURL(join(ROOT, "src/lib/card-specs.mjs")).href);
+  const decode = (t) => t.replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d)).replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  const docs = readdirSync(docsDir).filter((n) => n.endsWith(".md")).map((n) => ({ slug: n.replace(/\.md$/, ""), about: /^kind:\s*about/m.test(readFileSync(join(docsDir, n), "utf8")) }));
+  const withCard = docs.filter((d) => !d.about).map((d) => d.slug);
+  const homeHtml = existsSync(join(DIST, "index.html")) ? readFileSync(join(DIST, "index.html"), "utf8") : "";
+  for (const slug of withCard) {
+    const spec = CARDS[slug];
+    if (!spec) { fail("post-card", slug, "no entry in src/lib/card-specs.mjs"); continue; }
+    if (!spec.alt || spec.alt.length < 30 || spec.alt.length > 160) fail("post-card", slug, `alt text must be 30 to 160 characters (is ${spec.alt?.length ?? 0})`);
+    for (const f of [`cards/${slug}.png`, `cards/${slug}-thumb.png`]) if (!existsSync(join(DIST, f))) fail("post-card", slug, `${f} missing: run npm run cards`);
+    const html = existsSync(join(DIST, `${slug}/index.html`)) ? readFileSync(join(DIST, `${slug}/index.html`), "utf8") : "";
+    const big = html.match(new RegExp(`<img[^>]*src="${BASE}/cards/${slug}\\.png"[^>]*>`))?.[0];
+    if (!big) fail("post-card", slug, "the page does not show its picture");
+    else if (decode(big.match(/\balt="([^"]*)"/)?.[1] ?? "") !== spec.alt) fail("post-card", slug, "the alt text on the page is not the one in card-specs.mjs (a stale build cache?)");
+    if (!homeHtml.includes(`${BASE}/cards/${slug}-thumb.png`)) fail("post-card", slug, "the docs home does not show its thumbnail");
+  }
+  const byKind = {};
+  for (const slug of withCard) if (CARDS[slug]) (byKind[CARDS[slug].kind] ??= []).push(slug);
+  for (const [kind, list] of Object.entries(byKind)) if (list.length > 2) fail("post-card", kind, `template "${kind}" is used by ${list.length} pages (at most 2): ${list.join(", ")}`);
+  for (const slug of Object.keys(CARDS)) if (!docs.some((d) => d.slug === slug && !d.about)) fail("post-card", slug, "a card spec for a page that does not exist or has none (about pages have no picture)");
 }
 
 // ---------------------------------------------------------------------------------------------
